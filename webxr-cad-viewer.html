@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visionneuse CAO WebXR - Meta Quest</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/webxr/VRButton.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 350px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            color: #667eea;
+            font-size: 24px;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            margin: 15px 0;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .file-label {
+            display: block;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .file-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .info-box {
+            background: #f0f4ff;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .controls {
+            margin-top: 15px;
+        }
+        
+        .control-group {
+            margin: 12px 0;
+        }
+        
+        label {
+            display: block;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        #status {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #2e7d32;
+            text-align: center;
+            display: none;
+        }
+        
+        #status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .format-list {
+            font-size: 12px;
+            color: #777;
+            margin-top: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            #ui-panel {
+                max-width: calc(100vw - 40px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    
+    <div id="ui-panel">
+        <h1>🥽 Visionneuse CAO WebXR</h1>
+        
+        <div class="info-box">
+            <strong>Formats supportés:</strong>
+            <div class="format-list">
+                ✓ GLTF/GLB (recommandé)<br>
+                ✓ STL (SolidWorks/Blender)<br>
+                ✓ OBJ (Blender)<br>
+                ✓ FBX (Autodesk)
+            </div>
+        </div>
+        
+        <div class="file-input-wrapper">
+            <input type="file" id="fileInput" accept=".gltf,.glb,.stl,.obj,.fbx">
+            <label for="fileInput" class="file-label">📁 Charger un modèle 3D</label>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Rotation automatique</label>
+                <input type="checkbox" id="autoRotate"> Activer
+            </div>
+            
+            <div class="control-group">
+                <label>Échelle du modèle</label>
+                <input type="range" id="scaleSlider" min="0.1" max="5" step="0.1" value="1">
+                <span id="scaleValue">1.0x</span>
+            </div>
+            
+            <button id="resetView">🔄 Réinitialiser la vue</button>
+            <button id="vrButton" disabled>🥽 Lancer en VR</button>
+        </div>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // Configuration Three.js
+        let scene, camera, renderer, controls;
+        let currentModel = null;
+        let modelGroup = new THREE.Group();
+        
+        // Initialisation
+        function init() {
+            // Scène
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+            scene.fog = new THREE.Fog(0x1a1a2e, 10, 50);
+            
+            // Caméra
+            camera = new THREE.PerspectiveCamera(
+                75,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(5, 5, 5);
+            
+            // Renderer avec WebXR
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.xr.enabled = true;
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            // Vérifier le support WebXR
+            if ('xr' in navigator) {
+                navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+                    if (supported) {
+                        document.getElementById('vrButton').disabled = false;
+                        showStatus('WebXR VR supporté ! 🎉', false);
+                    } else {
+                        showStatus('WebXR VR non supporté sur cet appareil', true);
+                    }
+                });
+            }
+            
+            // Contrôles OrbitControls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 1;
+            controls.maxDistance = 100;
+            
+            // Lumières
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 10);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.camera.near = 0.1;
+            directionalLight.shadow.camera.far = 50;
+            directionalLight.shadow.camera.left = -10;
+            directionalLight.shadow.camera.right = 10;
+            directionalLight.shadow.camera.top = 10;
+            directionalLight.shadow.camera.bottom = -10;
+            scene.add(directionalLight);
+            
+            const pointLight = new THREE.PointLight(0x667eea, 0.5);
+            pointLight.position.set(-5, 5, -5);
+            scene.add(pointLight);
+            
+            // Grille de référence
+            const gridHelper = new THREE.GridHelper(20, 20, 0x667eea, 0x444444);
+            scene.add(gridHelper);
+            
+            // Axes de référence
+            const axesHelper = new THREE.AxesHelper(5);
+            scene.add(axesHelper);
+            
+            // Ajouter le groupe de modèle à la scène
+            scene.add(modelGroup);
+            
+            // Event listeners
+            window.addEventListener('resize', onWindowResize);
+            document.getElementById('fileInput').addEventListener('change', loadModel);
+            document.getElementById('autoRotate').addEventListener('change', toggleAutoRotate);
+            document.getElementById('scaleSlider').addEventListener('input', updateScale);
+            document.getElementById('resetView').addEventListener('click', resetView);
+            document.getElementById('vrButton').addEventListener('click', enterVR);
+            
+            // Animation
+            renderer.setAnimationLoop(animate);
+        }
+        
+        // Charger un modèle 3D
+        function loadModel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            showStatus('Chargement du modèle...', false);
+            
+            const reader = new FileReader();
+            const extension = file.name.split('.').pop().toLowerCase();
+            
+            reader.onload = function(e) {
+                const contents = e.target.result;
+                
+                // Supprimer l'ancien modèle
+                if (currentModel) {
+                    modelGroup.remove(currentModel);
+                    currentModel = null;
+                }
+                
+                // Charger selon le format
+                try {
+                    switch(extension) {
+                        case 'gltf':
+                        case 'glb':
+                            loadGLTF(contents, extension === 'gltf');
+                            break;
+                        case 'stl':
+                            loadSTL(contents);
+                            break;
+                        case 'obj':
+                            loadOBJ(contents);
+                            break;
+                        default:
+                            showStatus('Format non supporté: ' + extension, true);
+                    }
+                } catch (error) {
+                    showStatus('Erreur lors du chargement: ' + error.message, true);
+                }
+            };
+            
+            if (extension === 'gltf') {
+                reader.readAsText(file);
+            } else {
+                reader.readAsArrayBuffer(file);
+            }
+        }
+        
+        // Charger GLTF/GLB
+        function loadGLTF(contents, isText) {
+            const loader = new THREE.GLTFLoader();
+            
+            if (isText) {
+                loader.parse(contents, '', onModelLoaded, onModelError);
+            } else {
+                loader.parse(contents, '', onModelLoaded, onModelError);
+            }
+        }
+        
+        // Charger STL
+        function loadSTL(contents) {
+            const loader = new THREE.STLLoader();
+            const geometry = loader.parse(contents);
+            
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x667eea,
+                specular: 0x111111,
+                shininess: 200,
+                flatShading: false
+            });
+            
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            
+            currentModel = mesh;
+            modelGroup.add(currentModel);
+            centerAndScaleModel();
+            showStatus('Modèle STL chargé avec succès ! ✓', false);
+        }
+        
+        // Charger OBJ
+        function loadOBJ(contents) {
+            const loader = new THREE.OBJLoader();
+            const text = new TextDecoder().decode(contents);
+            const object = loader.parse(text);
+            
+            // Appliquer un matériau
+            object.traverse((child) => {
+                if (child instanceof THREE.Mesh) {
+                    child.material = new THREE.MeshPhongMaterial({
+                        color: 0x667eea,
+                        specular: 0x111111,
+                        shininess: 200
+                    });
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+            
+            currentModel = object;
+            modelGroup.add(currentModel);
+            centerAndScaleModel();
+            showStatus('Modèle OBJ chargé avec succès ! ✓', false);
+        }
+        
+        // Callback succès GLTF
+        function onModelLoaded(gltf) {
+            currentModel = gltf.scene;
+            modelGroup.add(currentModel);
+            
+            // Activer les ombres
+            currentModel.traverse((child) => {
+                if (child instanceof THREE.Mesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+            
+            centerAndScaleModel();
+            showStatus('Modèle chargé avec succès ! ✓', false);
+        }
+        
+        // Callback erreur
+        function onModelError(error) {
+            showStatus('Erreur: ' + error.message, true);
+        }
+        
+        // Centrer et ajuster l'échelle du modèle
+        function centerAndScaleModel() {
+            if (!currentModel) return;
+            
+            const box = new THREE.Box3().setFromObject(currentModel);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            
+            // Centrer
+            currentModel.position.sub(center);
+            
+            // Ajuster l'échelle pour que le modèle tienne dans une sphère de rayon 2
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = 4 / maxDim;
+            modelGroup.scale.set(scale, scale, scale);
+            
+            // Ajuster la caméra
+            camera.position.set(5, 5, 5);
+            camera.lookAt(0, 0, 0);
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+        
+        // Toggle rotation automatique
+        function toggleAutoRotate(event) {
+            controls.autoRotate = event.target.checked;
+            controls.autoRotateSpeed = 2.0;
+        }
+        
+        // Mettre à jour l'échelle
+        function updateScale(event) {
+            const scale = parseFloat(event.target.value);
+            document.getElementById('scaleValue').textContent = scale.toFixed(1) + 'x';
+            
+            if (currentModel) {
+                const box = new THREE.Box3().setFromObject(currentModel);
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const baseScale = 4 / maxDim;
+                modelGroup.scale.set(baseScale * scale, baseScale * scale, baseScale * scale);
+            }
+        }
+        
+        // Réinitialiser la vue
+        function resetView() {
+            camera.position.set(5, 5, 5);
+            camera.lookAt(0, 0, 0);
+            controls.target.set(0, 0, 0);
+            controls.update();
+            
+            document.getElementById('scaleSlider').value = 1;
+            document.getElementById('scaleValue').textContent = '1.0x';
+            
+            if (currentModel) {
+                centerAndScaleModel();
+            }
+        }
+        
+        // Entrer en mode VR
+        async function enterVR() {
+            if (!renderer.xr.enabled) {
+                showStatus('WebXR non supporté', true);
+                return;
+            }
+            
+            try {
+                const session = await navigator.xr.requestSession('immersive-vr', {
+                    optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
+                });
+                renderer.xr.setSession(session);
+                showStatus('Mode VR activé ! 🥽', false);
+            } catch (error) {
+                showStatus('Erreur VR: ' + error.message, true);
+            }
+        }
+        
+        // Afficher un message de statut
+        function showStatus(message, isError) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = isError ? 'error' : '';
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Redimensionnement
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // Animation
+        function animate() {
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        // Démarrer l'application
+        init();
+    </script>
+</body>
+</html>
