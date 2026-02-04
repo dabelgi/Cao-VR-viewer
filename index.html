@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visionneuse CAO VR - Déplacement Joystick</title>
+    <title>Visionneuse CAO VR - Déplacement Amélioré</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
@@ -12,13 +12,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         body {
             font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             overflow: hidden;
         }
-        
+
         #ui-panel {
             position: absolute;
             top: 20px;
@@ -32,13 +32,13 @@
             overflow-y: auto;
             z-index: 100;
         }
-        
+
         h1 {
             color: #667eea;
             font-size: 20px;
             margin-bottom: 15px;
         }
-        
+
         h2 {
             color: #667eea;
             font-size: 16px;
@@ -46,7 +46,7 @@
             border-bottom: 2px solid #667eea;
             padding-bottom: 5px;
         }
-        
+
         .btn {
             width: 100%;
             padding: 12px;
@@ -60,17 +60,17 @@
             background: #667eea;
             color: white;
         }
-        
+
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
-        
+
         .btn:disabled {
             background: #ccc;
             cursor: not-allowed;
         }
-        
+
         .info-box {
             background: #f0f4ff;
             padding: 12px;
@@ -78,7 +78,7 @@
             margin: 10px 0;
             font-size: 13px;
         }
-        
+
         #status {
             margin-top: 10px;
             padding: 10px;
@@ -87,12 +87,12 @@
             text-align: center;
             display: none;
         }
-        
+
         #status.success {
             background: #d4edda;
             color: #155724;
         }
-        
+
         #status.error {
             background: #f8d7da;
             color: #721c24;
@@ -102,31 +102,31 @@
 <body>
     <div id="ui-panel">
         <h1>🥽 Visionneuse CAO VR Pro</h1>
-        
+
         <div class="info-box">
             <strong>Formats supportés:</strong><br>
             ✓ GLTF/GLB, STL, OBJ
         </div>
-        
+
         <input type="file" id="fileInput" multiple accept=".gltf,.glb,.stl,.obj" style="display:none">
         <button class="btn" onclick="document.getElementById('fileInput').click()">
             📁 Charger des Modèles
         </button>
-        
+
         <h2>🎮 Contrôles VR</h2>
         <div class="info-box">
             <strong>Déplacement:</strong><br>
             • Joystick gauche = Se déplacer<br>
-            • Joystick droit = Tourner<br><br>
-            <strong>Actions:</strong><br>
-            • Trigger = Sélectionner/Mesurer<br>
+            • Joystick droit = Tourner<br>
+            • Trigger = Sélectionner/Déplacer<br>
             • Grip = Mode mesure ON/OFF<br>
             • Bouton Y/B = Menu plein/réduit<br>
             • Bouton A/X = Reset vue<br>
+            • Trigger sur menu = Déplacer menu
         </div>
-        
+
         <button class="btn" id="vrButton" disabled>🥽 Entrer en VR</button>
-        
+
         <div id="status"></div>
     </div>
 
@@ -134,55 +134,59 @@
         // ============================================
         // VARIABLES GLOBALES
         // ============================================
-        
+
         let scene, camera, renderer, controls;
         let models = [];
         let modelCounter = 0;
-        
+
         // VR
         let vrSession = null;
         let controller1, controller2;
-        let dolly; // Pour le déplacement
-        
+        let dolly;
+
         // UI VR
         let vrMenuFull = null;
         let vrMenuMini = null;
         let clockDisplay = null;
         let menuExpanded = false;
-        
+
         // Raycaster
         let raycaster = new THREE.Raycaster();
         let tempMatrix = new THREE.Matrix4();
-        
+
         // Mesures
         let measureMode = false;
         let measurePoints = [];
         let measurements = [];
-        
+
         // Locomotion
         let moveSpeed = 0.05;
         let turnSpeed = 0.02;
-        
-        // Boutons states (pour éviter répétition)
+
+        // Déplacement du menu
+        let draggedMenu = null;
+        let menuOffset = new THREE.Vector3();
+
+        // Boutons states
         let buttonStates = {
             menuToggle: false,
             resetView: false
         };
-        
+
         // Position initiale pour reset
-        const initialPosition = new THREE.Vector3(0, 0, 3);
-        
+        const initialPosition = new THREE.Vector3(0, 1.6, 3);
+
         // ============================================
         // INITIALISATION
         // ============================================
-        
+
         function init() {
             console.log('🚀 Initialisation...');
-            
+
             // Scène
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x1a1a2e);
-            
+
             // Caméra
             camera = new THREE.PerspectiveCamera(
                 75,
@@ -191,13 +195,13 @@
                 1000
             );
             camera.position.copy(initialPosition);
-            
-            // Dolly (conteneur pour la caméra, permet déplacement VR)
+
+            // Dolly
             dolly = new THREE.Group();
             dolly.position.set(0, 0, 0);
             dolly.add(camera);
             scene.add(dolly);
-            
+
             // Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -205,56 +209,56 @@
             renderer.xr.enabled = true;
             renderer.shadowMap.enabled = true;
             document.body.appendChild(renderer.domElement);
-            
+
             // Contrôles Desktop
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.target.set(0, 1, 0);
-            
+
             // Environnement
             setupEnvironment();
-            
+
             // Contrôleurs VR
             setupVRControllers();
-            
+
             // UI VR
             createVRUI();
-            
+
             // Event listeners
             setupEventListeners();
-            
+
             // Vérifier WebXR
             checkWebXRSupport();
-            
+
             // Animation
             renderer.setAnimationLoop(animate);
-            
+
             console.log('✅ Application prête!');
         }
-        
+
         function setupEnvironment() {
             // Lumières
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
-            
+
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
             dirLight.position.set(5, 10, 5);
             dirLight.castShadow = true;
             scene.add(dirLight);
-            
+
             // Sol
             const gridHelper = new THREE.GridHelper(20, 20, 0x667eea, 0x444444);
             scene.add(gridHelper);
-            
+
             // Axes
             const axesHelper = new THREE.AxesHelper(2);
             scene.add(axesHelper);
         }
-        
+
         // ============================================
         // CONTRÔLEURS VR
         // ============================================
-        
+
         function setupVRControllers() {
             // Contrôleur 1 (main droite)
             controller1 = renderer.xr.getController(0);
@@ -262,18 +266,18 @@
             controller1.addEventListener('selectend', onSelectEnd);
             controller1.addEventListener('squeezestart', onSqueezeStart);
             dolly.add(controller1);
-            
+
             // Contrôleur 2 (main gauche)
             controller2 = renderer.xr.getController(1);
             controller2.addEventListener('selectstart', onSelectStart);
             controller2.addEventListener('selectend', onSelectEnd);
             controller2.addEventListener('squeezestart', onSqueezeStart);
             dolly.add(controller2);
-            
-            // Rayon laser pour contrôleur 1
+
+            // Rayon laser pour contrôleur
             const geometry = new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(0, 0, -2)
+                new THREE.Vector3(0, 0, -10)
             ]);
             const line = new THREE.Line(
                 geometry,
@@ -282,98 +286,110 @@
             line.name = 'line';
             controller1.add(line.clone());
             controller2.add(line.clone());
-            
+
             console.log('🎮 Contrôleurs VR configurés');
         }
-        
+
         function onSelectStart(event) {
             const controller = event.target;
-            
-            // Raycaster depuis le contrôleur
             tempMatrix.identity().extractRotation(controller.matrixWorld);
             raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
             raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
-            
+
             // Vérifier intersection avec le menu
             if (menuExpanded) {
-                const menuObjects = vrMenuFull.children.filter(child => child.userData.isButton);
+                const menuObjects = vrMenuFull.children.filter(child => child.userData.isButton || child.userData.isDraggable);
                 const menuIntersects = raycaster.intersectObjects(menuObjects, true);
                 if (menuIntersects.length > 0) {
-                    handleMenuClick(menuIntersects[0].object);
-                    return;
+                    const object = menuIntersects[0].object;
+                    if (object.userData.isDraggable) {
+                        draggedMenu = vrMenuFull;
+                        menuOffset.copy(object.position).sub(controller.position);
+                        return;
+                    } else if (object.userData.isButton) {
+                        handleMenuClick(object);
+                        return;
+                    }
                 }
             } else {
-                // Menu mini
-                const miniObjects = vrMenuMini.children.filter(child => child.userData.isButton);
+                const miniObjects = vrMenuMini.children.filter(child => child.userData.isButton || child.userData.isDraggable);
                 const miniIntersects = raycaster.intersectObjects(miniObjects, true);
                 if (miniIntersects.length > 0) {
-                    handleMenuClick(miniIntersects[0].object);
-                    return;
+                    const object = miniIntersects[0].object;
+                    if (object.userData.isDraggable) {
+                        draggedMenu = vrMenuMini;
+                        menuOffset.copy(object.position).sub(controller.position);
+                        return;
+                    } else if (object.userData.isButton) {
+                        handleMenuClick(object);
+                        return;
+                    }
                 }
             }
-            
-            // Vérifier intersection avec les modèles (mesure)
-            if (measureMode) {
-                const modelIntersects = raycaster.intersectObjects(getAllModelMeshes());
-                if (modelIntersects.length > 0) {
-                    addMeasurePoint(modelIntersects[0].point);
+
+            // Sélection d'une pièce
+            const modelIntersects = raycaster.intersectObjects(getAllModelMeshes());
+            if (modelIntersects.length > 0) {
+                const model = modelIntersects[0].object;
+                let current = model;
+                while (current && !current.userData.id) {
+                    current = current.parent;
+                }
+                if (current) {
+                    models.forEach(m => toggleModelTransformControls(m, false));
+                    toggleModelTransformControls(current, true);
                 }
             }
         }
-        
+
         function onSelectEnd(event) {
-            // Fin de sélection
+            draggedMenu = null;
         }
-        
+
         function onSqueezeStart(event) {
-            // Grip = Toggle mesure
             toggleMeasureMode();
         }
-        
+
         // ============================================
         // LOCOMOTION (DÉPLACEMENT)
         // ============================================
-        
+
         function updateLocomotion() {
             if (!vrSession) return;
-            
+
             const session = renderer.xr.getSession();
             if (!session) return;
-            
+
             for (const source of session.inputSources) {
                 if (source.gamepad) {
                     const gamepad = source.gamepad;
-                    
+
                     // Main gauche = Déplacement
                     if (source.handedness === 'left') {
-                        const xAxis = gamepad.axes[2]; // Joystick X
-                        const yAxis = gamepad.axes[3]; // Joystick Y
-                        
+                        const xAxis = gamepad.axes[2];
+                        const yAxis = gamepad.axes[3];
+
                         if (Math.abs(xAxis) > 0.1 || Math.abs(yAxis) > 0.1) {
-                            // Obtenir la direction de la caméra
                             const cameraDirection = new THREE.Vector3();
                             camera.getWorldDirection(cameraDirection);
-                            cameraDirection.y = 0; // Garder horizontal
+                            cameraDirection.y = 0;
                             cameraDirection.normalize();
-                            
-                            // Direction perpendiculaire (gauche/droite)
+
                             const perpDirection = new THREE.Vector3();
                             perpDirection.crossVectors(cameraDirection, new THREE.Vector3(0, 1, 0));
-                            
-                            // Calculer le mouvement
+
                             const moveVector = new THREE.Vector3();
                             moveVector.addScaledVector(cameraDirection, -yAxis * moveSpeed);
                             moveVector.addScaledVector(perpDirection, xAxis * moveSpeed);
-                            
-                            // Appliquer au dolly
+
                             dolly.position.add(moveVector);
                         }
                     }
-                    
+
                     // Main droite = Rotation
                     if (source.handedness === 'right') {
-                        const xAxis = gamepad.axes[2]; // Joystick X
-                        
+                        const xAxis = gamepad.axes[2];
+
                         if (Math.abs(xAxis) > 0.1) {
                             dolly.rotateY(-xAxis * turnSpeed);
                         }
@@ -381,21 +397,21 @@
                 }
             }
         }
-        
+
         // ============================================
         // GESTION DES BOUTONS VR
         // ============================================
-        
+
         function checkVRButtons() {
             if (!vrSession) return;
-            
+
             const session = renderer.xr.getSession();
             if (!session) return;
-            
+
             for (const source of session.inputSources) {
                 if (source.gamepad) {
                     const gamepad = source.gamepad;
-                    
+
                     // Bouton Y/B (index 5) = Toggle menu plein/réduit
                     if (gamepad.buttons[5] && gamepad.buttons[5].pressed) {
                         if (!buttonStates.menuToggle) {
@@ -405,7 +421,7 @@
                     } else {
                         buttonStates.menuToggle = false;
                     }
-                    
+
                     // Bouton A/X (index 4) = Reset vue
                     if (gamepad.buttons[4] && gamepad.buttons[4].pressed) {
                         if (!buttonStates.resetView) {
@@ -418,34 +434,28 @@
                 }
             }
         }
-        
+
         // ============================================
         // UI VR
         // ============================================
-        
+
         function createVRUI() {
-            // Menu complet (expandé)
             createFullMenu();
-            
-            // Menu mini (réduit)
             createMiniMenu();
-            
-            // Horloge
             createClock();
-            
-            // Démarrer en mode mini
+
             menuExpanded = false;
             vrMenuFull.visible = false;
             vrMenuMini.visible = true;
         }
-        
+
         function createFullMenu() {
             vrMenuFull = new THREE.Group();
-            vrMenuFull.position.set(-0.3, 0.3, -0.5);
+            vrMenuFull.position.set(-0.3, 1.6, -0.8);
             dolly.add(vrMenuFull);
-            
-            // Panneau de fond
-            const panelGeometry = new THREE.PlaneGeometry(0.5, 0.8);
+
+            // Panneau de fond (draggable)
+            const panelGeometry = new THREE.PlaneGeometry(0.5, 0.9);
             const panelMaterial = new THREE.MeshBasicMaterial({
                 color: 0x222222,
                 opacity: 0.85,
@@ -453,26 +463,28 @@
                 side: THREE.DoubleSide
             });
             const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+            panel.userData.isDraggable = true;
             vrMenuFull.add(panel);
-            
+
             // Titre
-            createVRText(vrMenuFull, '🔧 MENU CAO', 0, 0.35, 0.02, 0.4, 0.08, 40);
-            
+            createVRText(vrMenuFull, '🔧 MENU CAO', 0, 0.4, 0.02, 0.4, 0.08, 40);
+
             // Boutons
-            createVRButton(vrMenuFull, '📏 Mesurer', 0, 0.2, () => toggleMeasureMode());
-            createVRButton(vrMenuFull, '📸 Screenshot', 0, 0.08, () => takeScreenshot());
-            createVRButton(vrMenuFull, '🗑️ Effacer Mesures', 0, -0.04, () => clearMeasures());
-            createVRButton(vrMenuFull, '🔄 Reset Vue', 0, -0.16, () => resetView());
-            createVRButton(vrMenuFull, '➖ Réduire', 0, -0.32, () => toggleMenuMode());
+            createVRButton(vrMenuFull, '📏 Mesurer', 0, 0.25, () => toggleMeasureMode());
+            createVRButton(vrMenuFull, '🎯 Fit to Piece', 0, 0.15, () => fitCameraToSelectedModel());
+            createVRButton(vrMenuFull, '📸 Screenshot', 0, 0.05, () => takeScreenshot());
+            createVRButton(vrMenuFull, '🗑️ Effacer Mesures', 0, -0.05, () => clearMeasures());
+            createVRButton(vrMenuFull, '🔄 Reset Vue', 0, -0.15, () => resetView());
+            createVRButton(vrMenuFull, '➖ Réduire', 0, -0.3, () => toggleMenuMode());
         }
-        
+
         function createMiniMenu() {
             vrMenuMini = new THREE.Group();
-            vrMenuMini.position.set(-0.25, 0.25, -0.4);
+            vrMenuMini.position.set(-0.25, 1.6, -0.6);
             dolly.add(vrMenuMini);
-            
-            // Panneau compact
-            const panelGeometry = new THREE.PlaneGeometry(0.25, 0.25);
+
+            // Panneau compact (draggable)
+            const panelGeometry = new THREE.PlaneGeometry(0.25, 0.3);
             const panelMaterial = new THREE.MeshBasicMaterial({
                 color: 0x222222,
                 opacity: 0.85,
@@ -480,21 +492,19 @@
                 side: THREE.DoubleSide
             });
             const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+            panel.userData.isDraggable = true;
             vrMenuMini.add(panel);
-            
-            // Bouton expand
-            createVRButton(vrMenuMini, '➕ Menu', 0, 0.05, () => toggleMenuMode(), 0.22, 0.06);
-            
-            // Bouton reset compact
+
+            // Boutons
+            createVRButton(vrMenuMini, '➕ Menu', 0, 0.1, () => toggleMenuMode(), 0.22, 0.06);
             createVRButton(vrMenuMini, '🔄', 0, -0.05, () => resetView(), 0.1, 0.06);
         }
-        
+
         function createClock() {
             clockDisplay = new THREE.Group();
-            clockDisplay.position.set(0.25, 0.3, -0.4);
+            clockDisplay.position.set(0.25, 1.6, -0.6);
             dolly.add(clockDisplay);
-            
-            // Fond horloge
+
             const clockBg = new THREE.Mesh(
                 new THREE.PlaneGeometry(0.15, 0.08),
                 new THREE.MeshBasicMaterial({
@@ -505,18 +515,17 @@
                 })
             );
             clockDisplay.add(clockBg);
-            
-            // Texte horloge (sera mis à jour)
+
             const canvas = document.createElement('canvas');
             canvas.width = 256;
             canvas.height = 128;
-            
+
             const texture = new THREE.CanvasTexture(canvas);
             const textMaterial = new THREE.MeshBasicMaterial({
                 map: texture,
                 transparent: true
             });
-            
+
             const textMesh = new THREE.Mesh(
                 new THREE.PlaneGeometry(0.14, 0.07),
                 textMaterial
@@ -526,65 +535,60 @@
             textMesh.userData.texture = texture;
             clockDisplay.add(textMesh);
         }
-        
+
         function updateClock() {
             if (!clockDisplay) return;
-            
+
             const textMesh = clockDisplay.children.find(child => child.userData.canvas);
             if (!textMesh) return;
-            
+
             const canvas = textMesh.userData.canvas;
             const ctx = canvas.getContext('2d');
-            
-            // Effacer
+
             ctx.clearRect(0, 0, 256, 128);
-            
-            // Heure actuelle
+
             const now = new Date();
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
-            
-            // Dessiner
+
             ctx.fillStyle = 'white';
             ctx.font = 'bold 48px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(`${hours}:${minutes}:${seconds}`, 128, 80);
-            
-            // Mettre à jour la texture
+
             textMesh.userData.texture.needsUpdate = true;
         }
-        
+
         function createVRText(parent, text, x, y, z, width = 0.4, height = 0.08, fontSize = 40) {
             const canvas = document.createElement('canvas');
             canvas.width = 512;
             canvas.height = 128;
             const ctx = canvas.getContext('2d');
-            
+
             ctx.fillStyle = 'white';
             ctx.font = `bold ${fontSize}px Arial`;
             ctx.textAlign = 'center';
             ctx.fillText(text, 256, 80);
-            
+
             const texture = new THREE.CanvasTexture(canvas);
             const material = new THREE.MeshBasicMaterial({
                 map: texture,
                 transparent: true
             });
-            
+
             const geometry = new THREE.PlaneGeometry(width, height);
             const mesh = new THREE.Mesh(geometry, material);
             mesh.position.set(x, y, z);
             parent.add(mesh);
-            
+
             return mesh;
         }
-        
+
         function createVRButton(parent, text, x, y, onClick, width = 0.45, height = 0.1) {
             const group = new THREE.Group();
             group.position.set(x, y, 0.01);
-            
-            // Fond du bouton
+
             const buttonGeometry = new THREE.PlaneGeometry(width, height);
             const buttonMaterial = new THREE.MeshBasicMaterial({
                 color: 0x667eea,
@@ -596,51 +600,45 @@
             button.userData.onClick = onClick;
             button.userData.originalColor = 0x667eea;
             group.add(button);
-            
-            // Texte du bouton
+
             const canvas = document.createElement('canvas');
             canvas.width = 512;
             canvas.height = 128;
             const ctx = canvas.getContext('2d');
-            
+
             ctx.fillStyle = 'white';
             ctx.font = 'bold 42px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(text, 256, 80);
-            
+
             const texture = new THREE.CanvasTexture(canvas);
             const textMaterial = new THREE.MeshBasicMaterial({
                 map: texture,
                 transparent: true
             });
-            
+
             const textMesh = new THREE.Mesh(
                 new THREE.PlaneGeometry(width - 0.02, height - 0.02),
                 textMaterial
             );
             textMesh.position.z = 0.01;
             group.add(textMesh);
-            
+
             parent.add(group);
             return group;
         }
-        
+
         function handleMenuClick(object) {
-            // Remonter jusqu'au bouton
             let current = object;
-            while (current && !current.userData.isButton) {
+            while (current && !current.userData.onClick) {
                 current = current.parent;
             }
-            
             if (current && current.userData.onClick) {
-                // Effet visuel
-                const originalColor = current.userData.originalColor || 0x667eea;
                 current.material.color.setHex(0xffffff);
                 setTimeout(() => {
-                    current.material.color.setHex(originalColor);
+                    current.material.color.setHex(current.userData.originalColor || 0x667eea);
                 }, 150);
-                
-                // Haptic feedback
+
                 if (vrSession) {
                     for (const source of vrSession.inputSources) {
                         if (source.gamepad && source.gamepad.hapticActuators) {
@@ -648,55 +646,51 @@
                         }
                     }
                 }
-                
-                // Exécuter l'action
+
                 current.userData.onClick();
             }
         }
-        
+
         function toggleMenuMode() {
             menuExpanded = !menuExpanded;
             vrMenuFull.visible = menuExpanded;
             vrMenuMini.visible = !menuExpanded;
         }
-        
+
         function resetView() {
-            // Réinitialiser position du dolly
             dolly.position.set(0, 0, 0);
             dolly.rotation.set(0, 0, 0);
-            
-            // Réinitialiser position caméra relative
             camera.position.copy(initialPosition);
-            
             showVRNotification('🔄 Vue réinitialisée');
         }
-        
+
         function showVRNotification(text) {
-            // TODO: Afficher une notification temporaire en VR
             console.log(text);
         }
-        
+
         // ============================================
-        // CHARGEMENT DE MODÈLES
+        // GESTION DES MODÈLES
         // ============================================
-        
+
         function loadModels(files) {
             Array.from(files).forEach(file => loadModel(file));
         }
-        
+
         function loadModel(file) {
             showStatus('Chargement de ' + file.name + '...', false);
-            
+
             const reader = new FileReader();
             const extension = file.name.split('.').pop().toLowerCase();
-            
+
             reader.onload = function(e) {
                 const contents = e.target.result;
-                
+
                 switch(extension) {
                     case 'gltf':
-                    case 'glb':
                         loadGLTF(contents, file.name, extension === 'gltf');
+                        break;
+                    case 'glb':
+                        loadGLTF(contents, file.name, false);
                         break;
                     case 'stl':
                         loadSTL(contents, file.name);
@@ -706,48 +700,53 @@
                         break;
                 }
             };
-            
+
             if (extension === 'gltf') {
                 reader.readAsText(file);
             } else {
                 reader.readAsArrayBuffer(file);
             }
         }
-        
+
         function loadGLTF(contents, filename, isText) {
             const loader = new THREE.GLTFLoader();
-            loader.parse(contents, '', 
-                function(gltf) {
+            if (isText) {
+                loader.parse(contents, '', (gltf) => {
                     addModelToScene(gltf.scene, filename);
-                },
-                function(error) {
+                }, (error) => {
                     showStatus('Erreur: ' + error.message, true);
-                }
-            );
+                });
+            } else {
+                loader.parse(contents, '', (gltf) => {
+                    addModelToScene(gltf.scene, filename);
+                }, (error) => {
+                    showStatus('Erreur: ' + error.message, true);
+                });
+            }
         }
-        
+
         function loadSTL(contents, filename) {
             const loader = new THREE.STLLoader();
             const geometry = loader.parse(contents);
-            
+
             const material = new THREE.MeshPhongMaterial({
                 color: 0x667eea,
                 specular: 0x111111,
                 shininess: 200
             });
-            
+
             const mesh = new THREE.Mesh(geometry, material);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
-            
+
             addModelToScene(mesh, filename);
         }
-        
+
         function loadOBJ(contents, filename) {
             const loader = new THREE.OBJLoader();
             const text = new TextDecoder().decode(contents);
             const obj = loader.parse(text);
-            
+
             obj.traverse((child) => {
                 if (child instanceof THREE.Mesh) {
                     child.material = new THREE.MeshPhongMaterial({ color: 0x667eea });
@@ -755,13 +754,13 @@
                     child.receiveShadow = true;
                 }
             });
-            
+
             addModelToScene(obj, filename);
         }
-        
+
         function addModelToScene(model, filename) {
             modelCounter++;
-            
+
             const modelGroup = new THREE.Group();
             modelGroup.add(model);
             modelGroup.userData = {
@@ -769,28 +768,38 @@
                 name: filename,
                 visible: true
             };
-            
+
             scene.add(modelGroup);
             models.push(modelGroup);
-            
+
             centerAndScaleModel(modelGroup);
-            
+
             showStatus('✅ ' + filename + ' chargé!', false);
         }
-        
-        function centerAndScaleModel(model) {
-            const box = new THREE.Box3().setFromObject(model);
+
+        function centerAndScaleModel(modelGroup) {
+            const box = new THREE.Box3().setFromObject(modelGroup);
             const center = box.getCenter(new THREE.Vector3());
+            modelGroup.position.sub(center);
+
             const size = box.getSize(new THREE.Vector3());
-            
-            model.position.sub(center);
-            model.position.y += 1;
-            
             const maxDim = Math.max(size.x, size.y, size.z);
             const scale = 2 / maxDim;
-            model.scale.set(scale, scale, scale);
+            modelGroup.scale.set(scale, scale, scale);
+
+            // Ajouter un trièdre de déplacement
+            const axesHelper = new THREE.AxesHelper(0.5);
+            axesHelper.visible = false;
+            modelGroup.add(axesHelper);
+            modelGroup.userData.axesHelper = axesHelper;
         }
-        
+
+        function toggleModelTransformControls(modelGroup, active) {
+            if (modelGroup.userData.axesHelper) {
+                modelGroup.userData.axesHelper.visible = active;
+            }
+        }
+
         function getAllModelMeshes() {
             const meshes = [];
             models.forEach(model => {
@@ -802,72 +811,89 @@
             });
             return meshes;
         }
-        
+
+        function fitCameraToSelectedModel() {
+            const selectedModel = models.find(m => m.userData.axesHelper && m.userData.axesHelper.visible);
+            if (selectedModel) {
+                const box = new THREE.Box3().setFromObject(selectedModel);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const fitHeightDistance = maxDim / (2 * Math.atan(Math.PI * camera.fov / 360));
+                const fitWidthDistance = fitHeightDistance / camera.aspect;
+                const distance = Math.max(fitHeightDistance, fitWidthDistance);
+
+                const direction = center.clone().sub(camera.position).normalize();
+                camera.position.copy(center.clone().sub(direction.multiplyScalar(distance)));
+                camera.lookAt(center);
+            }
+        }
+
         // ============================================
         // MESURES
         // ============================================
-        
+
         function toggleMeasureMode() {
             measureMode = !measureMode;
             showStatus(measureMode ? '📏 Mode mesure activé' : '📏 Mode mesure désactivé', false);
         }
-        
+
         function addMeasurePoint(point) {
             measurePoints.push(point);
-            
+
             const sphere = new THREE.Mesh(
                 new THREE.SphereGeometry(0.02),
                 new THREE.MeshBasicMaterial({ color: 0xff0000 })
             );
             sphere.position.copy(point);
             scene.add(sphere);
-            
+
             if (measurePoints.length === 2) {
                 const distance = measurePoints[0].distanceTo(measurePoints[1]);
-                
+
                 const lineGeometry = new THREE.BufferGeometry().setFromPoints(measurePoints);
                 const line = new THREE.Line(
                     lineGeometry,
                     new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 })
                 );
                 scene.add(line);
-                
+
                 createDistanceLabel(
                     measurePoints[0].clone().lerp(measurePoints[1], 0.5),
                     distance
                 );
-                
+
                 measurements.push({ sphere, line, distance });
                 measurePoints = [];
                 measureMode = false;
-                
+
                 showStatus(`Distance: ${distance.toFixed(3)} m`, false);
             }
         }
-        
+
         function createDistanceLabel(position, distance) {
             const canvas = document.createElement('canvas');
             canvas.width = 256;
             canvas.height = 128;
             const ctx = canvas.getContext('2d');
-            
+
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
             ctx.fillRect(0, 0, 256, 128);
-            
+
             ctx.fillStyle = 'white';
             ctx.font = 'bold 40px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(`${distance.toFixed(3)} m`, 128, 75);
-            
+
             const texture = new THREE.CanvasTexture(canvas);
             const material = new THREE.SpriteMaterial({ map: texture });
             const sprite = new THREE.Sprite(material);
-            
+
             sprite.position.copy(position);
             sprite.scale.set(0.3, 0.15, 1);
             scene.add(sprite);
         }
-        
+
         function clearMeasures() {
             measurements.forEach(m => {
                 if (m.sphere) scene.remove(m.sphere);
@@ -877,27 +903,27 @@
             measurePoints = [];
             showStatus('🗑️ Mesures effacées', false);
         }
-        
+
         // ============================================
         // SCREENSHOTS
         // ============================================
-        
+
         function takeScreenshot() {
             renderer.render(scene, camera);
             const dataURL = renderer.domElement.toDataURL('image/png');
-            
+
             const link = document.createElement('a');
             link.download = `screenshot_${Date.now()}.png`;
             link.href = dataURL;
             link.click();
-            
+
             showStatus('📸 Screenshot capturé!', false);
         }
-        
+
         // ============================================
         // VR SESSION
         // ============================================
-        
+
         function checkWebXRSupport() {
             if ('xr' in navigator) {
                 navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
@@ -913,25 +939,25 @@
                 document.getElementById('vrButton').textContent = 'WebXR indisponible';
             }
         }
-        
+
         async function enterVR() {
             try {
                 vrSession = await navigator.xr.requestSession('immersive-vr', {
                     optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
                 });
-                
+
                 await renderer.xr.setSession(vrSession);
-                
+
                 document.getElementById('ui-panel').style.display = 'none';
-                
+
                 vrSession.addEventListener('end', onVRSessionEnd);
-                
+
                 showStatus('🥽 Mode VR activé!', false);
             } catch (error) {
                 showStatus('❌ Erreur VR: ' + error.message, true);
             }
         }
-        
+
         function onVRSessionEnd() {
             vrSession = null;
             document.getElementById('ui-panel').style.display = 'block';
@@ -939,60 +965,63 @@
             vrMenuFull.visible = false;
             vrMenuMini.visible = true;
         }
-        
+
         // ============================================
         // EVENT LISTENERS
         // ============================================
-        
+
         function setupEventListeners() {
             document.getElementById('fileInput').addEventListener('change', function(e) {
                 loadModels(e.target.files);
             });
-            
+
             document.getElementById('vrButton').addEventListener('click', enterVR);
-            
+
             window.addEventListener('resize', onWindowResize);
         }
-        
+
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
-        
+
         function showStatus(message, isError) {
             const status = document.getElementById('status');
             status.textContent = message;
             status.className = isError ? 'error' : 'success';
             status.style.display = 'block';
-            
+
             setTimeout(() => {
                 status.style.display = 'none';
             }, 3000);
         }
-        
+
         // ============================================
         // ANIMATION
         // ============================================
-        
+
         function animate() {
-            // VR locomotion et inputs
             if (renderer.xr.isPresenting) {
                 updateLocomotion();
                 checkVRButtons();
                 updateClock();
+
+                if (draggedMenu) {
+                    const controller = renderer.xr.getController(0);
+                    draggedMenu.position.copy(controller.position).add(menuOffset);
+                }
             } else {
-                // Desktop controls
                 controls.update();
             }
-            
+
             renderer.render(scene, camera);
         }
-        
+
         // ============================================
         // DÉMARRAGE
         // ============================================
-        
+
         init();
     </script>
 </body>
