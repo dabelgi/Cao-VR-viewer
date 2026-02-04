@@ -3,31 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visionneuse CAO WebXR - Meta Quest</title>
+    <title>Visionneuse CAO VR - Compatible Manettes</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/webxr/VRButton.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             overflow: hidden;
-        }
-        
-        #container {
-            width: 100vw;
-            height: 100vh;
-            position: relative;
         }
         
         #ui-panel {
@@ -39,179 +28,173 @@
             border-radius: 15px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             max-width: 350px;
+            max-height: 90vh;
+            overflow-y: auto;
             z-index: 100;
-            backdrop-filter: blur(10px);
         }
         
         h1 {
             color: #667eea;
-            font-size: 24px;
+            font-size: 20px;
             margin-bottom: 15px;
-            font-weight: 700;
         }
         
-        .file-input-wrapper {
-            position: relative;
-            margin: 15px 0;
+        h2 {
+            color: #667eea;
+            font-size: 16px;
+            margin: 15px 0 10px 0;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
         }
         
-        input[type="file"] {
-            display: none;
-        }
-        
-        .file-label {
-            display: block;
-            padding: 12px 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-align: center;
+        .btn {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: none;
             border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            font-size: 14px;
             font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #667eea;
+            color: white;
         }
         
-        .file-label:hover {
+        .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .btn.danger { background: #dc3545; }
+        .btn.success { background: #28a745; }
         
         .info-box {
             background: #f0f4ff;
             padding: 12px;
             border-radius: 8px;
-            margin: 15px 0;
-            font-size: 14px;
-            color: #555;
-            line-height: 1.6;
-        }
-        
-        .controls {
-            margin-top: 15px;
-        }
-        
-        .control-group {
-            margin: 12px 0;
-        }
-        
-        label {
-            display: block;
+            margin: 10px 0;
             font-size: 13px;
-            color: #555;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-        
-        input[type="range"] {
-            width: 100%;
-            margin: 5px 0;
-        }
-        
-        button {
-            width: 100%;
-            padding: 10px;
-            margin: 5px 0;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        button:hover {
-            background: #5568d3;
-            transform: translateY(-1px);
-        }
-        
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
         }
         
         #status {
-            margin-top: 15px;
+            margin-top: 10px;
             padding: 10px;
-            background: #e8f5e9;
             border-radius: 8px;
             font-size: 13px;
-            color: #2e7d32;
             text-align: center;
             display: none;
         }
         
+        #status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
         #status.error {
-            background: #ffebee;
-            color: #c62828;
+            background: #f8d7da;
+            color: #721c24;
         }
-        
-        .format-list {
-            font-size: 12px;
-            color: #777;
-            margin-top: 8px;
-        }
-        
-        @media (max-width: 768px) {
-            #ui-panel {
-                max-width: calc(100vw - 40px);
-            }
+
+        /* Instructions VR */
+        #vr-instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 14px;
+            display: none;
+            z-index: 200;
         }
     </style>
 </head>
 <body>
-    <div id="container"></div>
-    
+    <!-- UI Desktop -->
     <div id="ui-panel">
-        <h1>🥽 Visionneuse CAO WebXR</h1>
+        <h1>🥽 Visionneuse CAO VR</h1>
         
         <div class="info-box">
-            <strong>Formats supportés:</strong>
-            <div class="format-list">
-                ✓ GLTF/GLB (recommandé)<br>
-                ✓ STL (SolidWorks/Blender)<br>
-                ✓ OBJ (Blender)<br>
-                ✓ FBX (Autodesk)
-            </div>
+            <strong>Formats supportés:</strong><br>
+            ✓ GLTF/GLB<br>
+            ✓ STL<br>
+            ✓ OBJ
         </div>
         
-        <div class="file-input-wrapper">
-            <input type="file" id="fileInput" accept=".gltf,.glb,.stl,.obj,.fbx">
-            <label for="fileInput" class="file-label">📁 Charger un modèle 3D</label>
+        <input type="file" id="fileInput" multiple accept=".gltf,.glb,.stl,.obj" style="display:none">
+        <button class="btn" onclick="document.getElementById('fileInput').click()">
+            📁 Charger des Modèles
+        </button>
+        
+        <h2>🎮 Mode VR</h2>
+        <div class="info-box">
+            <strong>Contrôles en VR:</strong><br>
+            • Joystick gauche = Menu<br>
+            • Trigger = Sélectionner<br>
+            • Grip = Mesurer<br>
+            • Bouton A/X = Quitter VR
         </div>
         
-        <div class="controls">
-            <div class="control-group">
-                <label>Rotation automatique</label>
-                <input type="checkbox" id="autoRotate"> Activer
-            </div>
-            
-            <div class="control-group">
-                <label>Échelle du modèle</label>
-                <input type="range" id="scaleSlider" min="0.1" max="5" step="0.1" value="1">
-                <span id="scaleValue">1.0x</span>
-            </div>
-            
-            <button id="resetView">🔄 Réinitialiser la vue</button>
-            <button id="vrButton" disabled>🥽 Lancer en VR</button>
-        </div>
+        <button class="btn" id="vrButton" disabled>🥽 Entrer en VR</button>
         
         <div id="status"></div>
     </div>
 
+    <!-- Instructions VR (s'affichent en VR) -->
+    <div id="vr-instructions">
+        <strong>🎮 CONTRÔLES VR:</strong><br>
+        Joystick gauche = Ouvrir Menu<br>
+        Trigger = Sélectionner<br>
+        Grip = Mesurer<br>
+        Bouton A/X = Quitter VR
+    </div>
+
     <script>
-        // Configuration Three.js
-        let scene, camera, renderer, controls;
-        let currentModel = null;
-        let modelGroup = new THREE.Group();
+        // ============================================
+        // VARIABLES GLOBALES
+        // ============================================
         
-        // Initialisation
+        let scene, camera, renderer, controls;
+        let models = [];
+        let selectedModel = null;
+        let modelCounter = 0;
+        
+        // VR
+        let vrSession = null;
+        let controller1, controller2;
+        let controllerGrip1, controllerGrip2;
+        
+        // UI 3D en VR
+        let vrMenu = null;
+        let menuVisible = false;
+        
+        // Raycaster
+        let raycaster = new THREE.Raycaster();
+        let tempMatrix = new THREE.Matrix4();
+        
+        // Mesures
+        let measureMode = false;
+        let measurePoints = [];
+        let measurements = [];
+        
+        // ============================================
+        // INITIALISATION
+        // ============================================
+        
         function init() {
+            console.log('🚀 Initialisation...');
+            
             // Scène
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x1a1a2e);
-            scene.fog = new THREE.Fog(0x1a1a2e, 10, 50);
             
             // Caméra
             camera = new THREE.PerspectiveCamera(
@@ -220,84 +203,322 @@
                 0.1,
                 1000
             );
-            camera.position.set(5, 5, 5);
+            camera.position.set(0, 1.6, 3);
             
-            // Renderer avec WebXR
+            // Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.xr.enabled = true;
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            document.getElementById('container').appendChild(renderer.domElement);
+            document.body.appendChild(renderer.domElement);
             
-            // Vérifier le support WebXR
-            if ('xr' in navigator) {
-                navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
-                    if (supported) {
-                        document.getElementById('vrButton').disabled = false;
-                        showStatus('WebXR VR supporté ! 🎉', false);
-                    } else {
-                        showStatus('WebXR VR non supporté sur cet appareil', true);
-                    }
-                });
-            }
-            
-            // Contrôles OrbitControls
+            // Contrôles Desktop
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-            controls.minDistance = 1;
-            controls.maxDistance = 100;
+            controls.target.set(0, 1, 0);
             
+            // Environnement
+            setupEnvironment();
+            
+            // Contrôleurs VR
+            setupVRControllers();
+            
+            // Menu 3D VR
+            createVRMenu();
+            
+            // Event listeners
+            setupEventListeners();
+            
+            // Vérifier WebXR
+            checkWebXRSupport();
+            
+            // Animation
+            renderer.setAnimationLoop(animate);
+            
+            console.log('✅ Application prête!');
+        }
+        
+        function setupEnvironment() {
             // Lumières
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
             
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(10, 10, 10);
-            directionalLight.castShadow = true;
-            directionalLight.shadow.camera.near = 0.1;
-            directionalLight.shadow.camera.far = 50;
-            directionalLight.shadow.camera.left = -10;
-            directionalLight.shadow.camera.right = 10;
-            directionalLight.shadow.camera.top = 10;
-            directionalLight.shadow.camera.bottom = -10;
-            scene.add(directionalLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 5);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
             
-            const pointLight = new THREE.PointLight(0x667eea, 0.5);
-            pointLight.position.set(-5, 5, -5);
-            scene.add(pointLight);
-            
-            // Grille de référence
+            // Sol
             const gridHelper = new THREE.GridHelper(20, 20, 0x667eea, 0x444444);
             scene.add(gridHelper);
             
-            // Axes de référence
-            const axesHelper = new THREE.AxesHelper(5);
+            // Axes
+            const axesHelper = new THREE.AxesHelper(2);
             scene.add(axesHelper);
-            
-            // Ajouter le groupe de modèle à la scène
-            scene.add(modelGroup);
-            
-            // Event listeners
-            window.addEventListener('resize', onWindowResize);
-            document.getElementById('fileInput').addEventListener('change', loadModel);
-            document.getElementById('autoRotate').addEventListener('change', toggleAutoRotate);
-            document.getElementById('scaleSlider').addEventListener('input', updateScale);
-            document.getElementById('resetView').addEventListener('click', resetView);
-            document.getElementById('vrButton').addEventListener('click', enterVR);
-            
-            // Animation
-            renderer.setAnimationLoop(animate);
         }
         
-        // Charger un modèle 3D
-        function loadModel(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // ============================================
+        // CONTRÔLEURS VR
+        // ============================================
+        
+        function setupVRControllers() {
+            // Contrôleur 1 (main droite)
+            controller1 = renderer.xr.getController(0);
+            controller1.addEventListener('selectstart', onSelectStart);
+            controller1.addEventListener('selectend', onSelectEnd);
+            controller1.addEventListener('squeezestart', onSqueezeStart);
+            scene.add(controller1);
             
-            showStatus('Chargement du modèle...', false);
+            // Contrôleur 2 (main gauche)
+            controller2 = renderer.xr.getController(1);
+            controller2.addEventListener('selectstart', onSelectStart);
+            controller2.addEventListener('selectend', onSelectEnd);
+            controller2.addEventListener('squeezestart', onSqueezeStart);
+            scene.add(controller2);
+            
+            // Rayon laser pour contrôleur 1
+            const geometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, 0, -2)
+            ]);
+            const line = new THREE.Line(
+                geometry,
+                new THREE.LineBasicMaterial({ color: 0x667eea })
+            );
+            line.name = 'line';
+            controller1.add(line.clone());
+            controller2.add(line.clone());
+            
+            console.log('🎮 Contrôleurs VR configurés');
+        }
+        
+        function onSelectStart(event) {
+            const controller = event.target;
+            
+            // Raycaster depuis le contrôleur
+            tempMatrix.identity().extractRotation(controller.matrixWorld);
+            raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+            raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+            
+            // Vérifier intersection avec le menu VR
+            if (menuVisible) {
+                const menuIntersects = raycaster.intersectObjects(vrMenu.children, true);
+                if (menuIntersects.length > 0) {
+                    handleMenuClick(menuIntersects[0].object);
+                    return;
+                }
+            }
+            
+            // Vérifier intersection avec les modèles
+            if (measureMode) {
+                const modelIntersects = raycaster.intersectObjects(getAllModelMeshes());
+                if (modelIntersects.length > 0) {
+                    addMeasurePoint(modelIntersects[0].point);
+                }
+            }
+        }
+        
+        function onSelectEnd(event) {
+            // Fin de sélection
+        }
+        
+        function onSqueezeStart(event) {
+            // Grip = Toggle mesure
+            toggleMeasureMode();
+        }
+        
+        // ============================================
+        // MENU 3D VR
+        // ============================================
+        
+        function createVRMenu() {
+            vrMenu = new THREE.Group();
+            vrMenu.position.set(-0.5, 1.5, -1);
+            vrMenu.visible = false;
+            scene.add(vrMenu);
+            
+            // Panneau de fond
+            const panelGeometry = new THREE.PlaneGeometry(0.8, 1);
+            const panelMaterial = new THREE.MeshBasicMaterial({
+                color: 0x222222,
+                opacity: 0.9,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+            vrMenu.add(panel);
+            
+            // Titre
+            createVRText('🔧 MENU CAO', 0, 0.4, 0.02);
+            
+            // Boutons
+            createVRButton('📏 Mesurer', 0, 0.2, () => toggleMeasureMode());
+            createVRButton('📸 Screenshot', 0, 0.05, () => takeScreenshot());
+            createVRButton('🗑️ Effacer Mesures', 0, -0.1, () => clearMeasures());
+            createVRButton('❌ Fermer Menu', 0, -0.35, () => toggleVRMenu());
+            
+            console.log('🎨 Menu VR créé');
+        }
+        
+        function createVRText(text, x, y, z) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 60px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, 256, 80);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true
+            });
+            
+            const geometry = new THREE.PlaneGeometry(0.6, 0.15);
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(x, y, z + 0.01);
+            vrMenu.add(mesh);
+            
+            return mesh;
+        }
+        
+        function createVRButton(text, x, y, onClick) {
+            const group = new THREE.Group();
+            group.position.set(x, y, 0.01);
+            
+            // Fond du bouton
+            const buttonGeometry = new THREE.PlaneGeometry(0.6, 0.12);
+            const buttonMaterial = new THREE.MeshBasicMaterial({
+                color: 0x667eea,
+                transparent: true,
+                opacity: 0.8
+            });
+            const button = new THREE.Mesh(buttonGeometry, buttonMaterial);
+            button.userData.isButton = true;
+            button.userData.onClick = onClick;
+            group.add(button);
+            
+            // Texte du bouton
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = 'white';
+            ctx.font = '48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, 256, 80);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const textMaterial = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true
+            });
+            
+            const textMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.58, 0.11),
+                textMaterial
+            );
+            textMesh.position.z = 0.01;
+            group.add(textMesh);
+            
+            vrMenu.add(group);
+            return group;
+        }
+        
+        function handleMenuClick(object) {
+            // Remonter jusqu'au bouton
+            let current = object;
+            while (current && !current.userData.isButton) {
+                current = current.parent;
+            }
+            
+            if (current && current.userData.onClick) {
+                // Effet visuel
+                if (current.material) {
+                    const originalColor = current.material.color.getHex();
+                    current.material.color.setHex(0xffffff);
+                    setTimeout(() => {
+                        current.material.color.setHex(originalColor);
+                    }, 100);
+                }
+                
+                // Exécuter l'action
+                current.userData.onClick();
+            }
+        }
+        
+        function toggleVRMenu() {
+            menuVisible = !menuVisible;
+            vrMenu.visible = menuVisible;
+            
+            if (menuVisible) {
+                // Positionner le menu devant l'utilisateur
+                const cameraDirection = new THREE.Vector3();
+                camera.getWorldDirection(cameraDirection);
+                
+                const menuPosition = camera.position.clone();
+                menuPosition.add(cameraDirection.multiplyScalar(1.5));
+                menuPosition.y = camera.position.y;
+                
+                vrMenu.position.copy(menuPosition);
+                vrMenu.lookAt(camera.position);
+            }
+        }
+        
+        // ============================================
+        // GESTION DES INPUTS VR
+        // ============================================
+        
+        function checkVRInput() {
+            if (!vrSession) return;
+            
+            // Récupérer les gamepads
+            const session = renderer.xr.getSession();
+            if (!session) return;
+            
+            for (const source of session.inputSources) {
+                if (source.gamepad) {
+                    const gamepad = source.gamepad;
+                    
+                    // Bouton pour ouvrir le menu (thumbstick ou bouton)
+                    // Index 4 = Bouton A/X sur Quest
+                    if (gamepad.buttons[4] && gamepad.buttons[4].pressed) {
+                        if (!this.menuButtonPressed) {
+                            toggleVRMenu();
+                            this.menuButtonPressed = true;
+                        }
+                    } else {
+                        this.menuButtonPressed = false;
+                    }
+                    
+                    // Joystick gauche pour menu
+                    if (gamepad.axes[2] < -0.8 || gamepad.axes[3] < -0.8) {
+                        if (!this.joystickPressed) {
+                            toggleVRMenu();
+                            this.joystickPressed = true;
+                        }
+                    } else {
+                        this.joystickPressed = false;
+                    }
+                }
+            }
+        }
+        
+        // ============================================
+        // CHARGEMENT DE MODÈLES
+        // ============================================
+        
+        function loadModels(files) {
+            Array.from(files).forEach(file => loadModel(file));
+        }
+        
+        function loadModel(file) {
+            showStatus('Chargement de ' + file.name + '...', false);
             
             const reader = new FileReader();
             const extension = file.name.split('.').pop().toLowerCase();
@@ -305,30 +526,17 @@
             reader.onload = function(e) {
                 const contents = e.target.result;
                 
-                // Supprimer l'ancien modèle
-                if (currentModel) {
-                    modelGroup.remove(currentModel);
-                    currentModel = null;
-                }
-                
-                // Charger selon le format
-                try {
-                    switch(extension) {
-                        case 'gltf':
-                        case 'glb':
-                            loadGLTF(contents, extension === 'gltf');
-                            break;
-                        case 'stl':
-                            loadSTL(contents);
-                            break;
-                        case 'obj':
-                            loadOBJ(contents);
-                            break;
-                        default:
-                            showStatus('Format non supporté: ' + extension, true);
-                    }
-                } catch (error) {
-                    showStatus('Erreur lors du chargement: ' + error.message, true);
+                switch(extension) {
+                    case 'gltf':
+                    case 'glb':
+                        loadGLTF(contents, file.name, extension === 'gltf');
+                        break;
+                    case 'stl':
+                        loadSTL(contents, file.name);
+                        break;
+                    case 'obj':
+                        loadOBJ(contents, file.name);
+                        break;
                 }
             };
             
@@ -339,188 +547,293 @@
             }
         }
         
-        // Charger GLTF/GLB
-        function loadGLTF(contents, isText) {
+        function loadGLTF(contents, filename, isText) {
             const loader = new THREE.GLTFLoader();
-            
-            if (isText) {
-                loader.parse(contents, '', onModelLoaded, onModelError);
-            } else {
-                loader.parse(contents, '', onModelLoaded, onModelError);
-            }
+            loader.parse(contents, '', 
+                function(gltf) {
+                    addModelToScene(gltf.scene, filename);
+                },
+                function(error) {
+                    showStatus('Erreur: ' + error.message, true);
+                }
+            );
         }
         
-        // Charger STL
-        function loadSTL(contents) {
+        function loadSTL(contents, filename) {
             const loader = new THREE.STLLoader();
             const geometry = loader.parse(contents);
             
             const material = new THREE.MeshPhongMaterial({
                 color: 0x667eea,
                 specular: 0x111111,
-                shininess: 200,
-                flatShading: false
+                shininess: 200
             });
             
             const mesh = new THREE.Mesh(geometry, material);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
             
-            currentModel = mesh;
-            modelGroup.add(currentModel);
-            centerAndScaleModel();
-            showStatus('Modèle STL chargé avec succès ! ✓', false);
+            addModelToScene(mesh, filename);
         }
         
-        // Charger OBJ
-        function loadOBJ(contents) {
+        function loadOBJ(contents, filename) {
             const loader = new THREE.OBJLoader();
             const text = new TextDecoder().decode(contents);
-            const object = loader.parse(text);
+            const obj = loader.parse(text);
             
-            // Appliquer un matériau
-            object.traverse((child) => {
+            obj.traverse((child) => {
                 if (child instanceof THREE.Mesh) {
-                    child.material = new THREE.MeshPhongMaterial({
-                        color: 0x667eea,
-                        specular: 0x111111,
-                        shininess: 200
-                    });
+                    child.material = new THREE.MeshPhongMaterial({ color: 0x667eea });
                     child.castShadow = true;
                     child.receiveShadow = true;
                 }
             });
             
-            currentModel = object;
-            modelGroup.add(currentModel);
-            centerAndScaleModel();
-            showStatus('Modèle OBJ chargé avec succès ! ✓', false);
+            addModelToScene(obj, filename);
         }
         
-        // Callback succès GLTF
-        function onModelLoaded(gltf) {
-            currentModel = gltf.scene;
-            modelGroup.add(currentModel);
+        function addModelToScene(model, filename) {
+            modelCounter++;
             
-            // Activer les ombres
-            currentModel.traverse((child) => {
-                if (child instanceof THREE.Mesh) {
-                    child.castShadow = true;
-                    child.receiveShadow = true;
-                }
-            });
+            const modelGroup = new THREE.Group();
+            modelGroup.add(model);
+            modelGroup.userData = {
+                id: modelCounter,
+                name: filename,
+                visible: true
+            };
             
-            centerAndScaleModel();
-            showStatus('Modèle chargé avec succès ! ✓', false);
+            scene.add(modelGroup);
+            models.push(modelGroup);
+            
+            centerAndScaleModel(modelGroup);
+            
+            showStatus('✅ ' + filename + ' chargé!', false);
         }
         
-        // Callback erreur
-        function onModelError(error) {
-            showStatus('Erreur: ' + error.message, true);
-        }
-        
-        // Centrer et ajuster l'échelle du modèle
-        function centerAndScaleModel() {
-            if (!currentModel) return;
-            
-            const box = new THREE.Box3().setFromObject(currentModel);
+        function centerAndScaleModel(model) {
+            const box = new THREE.Box3().setFromObject(model);
             const center = box.getCenter(new THREE.Vector3());
             const size = box.getSize(new THREE.Vector3());
             
-            // Centrer
-            currentModel.position.sub(center);
+            model.position.sub(center);
+            model.position.y += 1; // Hauteur des yeux en VR
             
-            // Ajuster l'échelle pour que le modèle tienne dans une sphère de rayon 2
             const maxDim = Math.max(size.x, size.y, size.z);
-            const scale = 4 / maxDim;
-            modelGroup.scale.set(scale, scale, scale);
-            
-            // Ajuster la caméra
-            camera.position.set(5, 5, 5);
-            camera.lookAt(0, 0, 0);
-            controls.target.set(0, 0, 0);
-            controls.update();
+            const scale = 2 / maxDim;
+            model.scale.set(scale, scale, scale);
         }
         
-        // Toggle rotation automatique
-        function toggleAutoRotate(event) {
-            controls.autoRotate = event.target.checked;
-            controls.autoRotateSpeed = 2.0;
+        function getAllModelMeshes() {
+            const meshes = [];
+            models.forEach(model => {
+                model.traverse((child) => {
+                    if (child instanceof THREE.Mesh) {
+                        meshes.push(child);
+                    }
+                });
+            });
+            return meshes;
         }
         
-        // Mettre à jour l'échelle
-        function updateScale(event) {
-            const scale = parseFloat(event.target.value);
-            document.getElementById('scaleValue').textContent = scale.toFixed(1) + 'x';
+        // ============================================
+        // MESURES
+        // ============================================
+        
+        function toggleMeasureMode() {
+            measureMode = !measureMode;
+            showStatus(measureMode ? '📏 Mode mesure activé' : '📏 Mode mesure désactivé', false);
+        }
+        
+        function addMeasurePoint(point) {
+            measurePoints.push(point);
             
-            if (currentModel) {
-                const box = new THREE.Box3().setFromObject(currentModel);
-                const size = box.getSize(new THREE.Vector3());
-                const maxDim = Math.max(size.x, size.y, size.z);
-                const baseScale = 4 / maxDim;
-                modelGroup.scale.set(baseScale * scale, baseScale * scale, baseScale * scale);
+            // Créer une sphère
+            const sphere = new THREE.Mesh(
+                new THREE.SphereGeometry(0.02),
+                new THREE.MeshBasicMaterial({ color: 0xff0000 })
+            );
+            sphere.position.copy(point);
+            scene.add(sphere);
+            
+            if (measurePoints.length === 2) {
+                const distance = measurePoints[0].distanceTo(measurePoints[1]);
+                
+                // Ligne
+                const lineGeometry = new THREE.BufferGeometry().setFromPoints(measurePoints);
+                const line = new THREE.Line(
+                    lineGeometry,
+                    new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 })
+                );
+                scene.add(line);
+                
+                // Label
+                createDistanceLabel(
+                    measurePoints[0].clone().lerp(measurePoints[1], 0.5),
+                    distance
+                );
+                
+                measurements.push({ sphere, line, distance });
+                measurePoints = [];
+                measureMode = false;
+                
+                showStatus(`Distance: ${distance.toFixed(3)} m`, false);
             }
         }
         
-        // Réinitialiser la vue
-        function resetView() {
-            camera.position.set(5, 5, 5);
-            camera.lookAt(0, 0, 0);
-            controls.target.set(0, 0, 0);
-            controls.update();
+        function createDistanceLabel(position, distance) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
             
-            document.getElementById('scaleSlider').value = 1;
-            document.getElementById('scaleValue').textContent = '1.0x';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, 256, 128);
             
-            if (currentModel) {
-                centerAndScaleModel();
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 40px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${distance.toFixed(3)} m`, 128, 75);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(material);
+            
+            sprite.position.copy(position);
+            sprite.scale.set(0.3, 0.15, 1);
+            scene.add(sprite);
+        }
+        
+        function clearMeasures() {
+            measurements.forEach(m => {
+                if (m.sphere) scene.remove(m.sphere);
+                if (m.line) scene.remove(m.line);
+            });
+            measurements = [];
+            measurePoints = [];
+            showStatus('🗑️ Mesures effacées', false);
+        }
+        
+        // ============================================
+        // SCREENSHOTS
+        // ============================================
+        
+        function takeScreenshot() {
+            renderer.render(scene, camera);
+            const dataURL = renderer.domElement.toDataURL('image/png');
+            
+            const link = document.createElement('a');
+            link.download = `screenshot_${Date.now()}.png`;
+            link.href = dataURL;
+            link.click();
+            
+            showStatus('📸 Screenshot capturé!', false);
+        }
+        
+        // ============================================
+        // VR SESSION
+        // ============================================
+        
+        function checkWebXRSupport() {
+            if ('xr' in navigator) {
+                navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+                    const button = document.getElementById('vrButton');
+                    if (supported) {
+                        button.disabled = false;
+                        showStatus('✅ WebXR VR supporté!', false);
+                    } else {
+                        button.textContent = 'VR non supporté';
+                    }
+                });
+            } else {
+                document.getElementById('vrButton').textContent = 'WebXR indisponible';
             }
         }
         
-        // Entrer en mode VR
         async function enterVR() {
-            if (!renderer.xr.enabled) {
-                showStatus('WebXR non supporté', true);
-                return;
-            }
-            
             try {
-                const session = await navigator.xr.requestSession('immersive-vr', {
+                vrSession = await navigator.xr.requestSession('immersive-vr', {
                     optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
                 });
-                renderer.xr.setSession(session);
-                showStatus('Mode VR activé ! 🥽', false);
+                
+                await renderer.xr.setSession(vrSession);
+                
+                // Masquer l'UI desktop
+                document.getElementById('ui-panel').style.display = 'none';
+                
+                // Afficher les instructions VR
+                document.getElementById('vr-instructions').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('vr-instructions').style.display = 'none';
+                }, 5000);
+                
+                // Écouter la fin de session
+                vrSession.addEventListener('end', onVRSessionEnd);
+                
+                showStatus('🥽 Mode VR activé!', false);
             } catch (error) {
-                showStatus('Erreur VR: ' + error.message, true);
+                showStatus('❌ Erreur VR: ' + error.message, true);
             }
         }
         
-        // Afficher un message de statut
-        function showStatus(message, isError) {
-            const status = document.getElementById('status');
-            status.textContent = message;
-            status.className = isError ? 'error' : '';
-            status.style.display = 'block';
-            
-            setTimeout(() => {
-                status.style.display = 'none';
-            }, 5000);
+        function onVRSessionEnd() {
+            vrSession = null;
+            document.getElementById('ui-panel').style.display = 'block';
+            menuVisible = false;
+            vrMenu.visible = false;
         }
         
-        // Redimensionnement
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+        
+        function setupEventListeners() {
+            document.getElementById('fileInput').addEventListener('change', function(e) {
+                loadModels(e.target.files);
+            });
+            
+            document.getElementById('vrButton').addEventListener('click', enterVR);
+            
+            window.addEventListener('resize', onWindowResize);
+        }
+        
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
         
-        // Animation
+        function showStatus(message, isError) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = isError ? 'error' : 'success';
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+        
+        // ============================================
+        // ANIMATION
+        // ============================================
+        
         function animate() {
-            controls.update();
+            // Vérifier les inputs VR
+            checkVRInput();
+            
+            // Mettre à jour les contrôles desktop
+            if (!renderer.xr.isPresenting) {
+                controls.update();
+            }
+            
             renderer.render(scene, camera);
         }
         
-        // Démarrer l'application
+        // ============================================
+        // DÉMARRAGE
+        // ============================================
+        
         init();
     </script>
 </body>
