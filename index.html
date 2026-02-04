@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visionneuse CAO VR - Compatible Manettes</title>
+    <title>Visionneuse CAO VR - Déplacement Joystick</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
@@ -71,9 +71,6 @@
             cursor: not-allowed;
         }
         
-        .btn.danger { background: #dc3545; }
-        .btn.success { background: #28a745; }
-        
         .info-box {
             background: #f0f4ff;
             padding: 12px;
@@ -100,33 +97,15 @@
             background: #f8d7da;
             color: #721c24;
         }
-
-        /* Instructions VR */
-        #vr-instructions {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            font-size: 14px;
-            display: none;
-            z-index: 200;
-        }
     </style>
 </head>
 <body>
-    <!-- UI Desktop -->
     <div id="ui-panel">
-        <h1>🥽 Visionneuse CAO VR</h1>
+        <h1>🥽 Visionneuse CAO VR Pro</h1>
         
         <div class="info-box">
             <strong>Formats supportés:</strong><br>
-            ✓ GLTF/GLB<br>
-            ✓ STL<br>
-            ✓ OBJ
+            ✓ GLTF/GLB, STL, OBJ
         </div>
         
         <input type="file" id="fileInput" multiple accept=".gltf,.glb,.stl,.obj" style="display:none">
@@ -134,27 +113,21 @@
             📁 Charger des Modèles
         </button>
         
-        <h2>🎮 Mode VR</h2>
+        <h2>🎮 Contrôles VR</h2>
         <div class="info-box">
-            <strong>Contrôles en VR:</strong><br>
-            • Joystick gauche = Menu<br>
-            • Trigger = Sélectionner<br>
-            • Grip = Mesurer<br>
-            • Bouton A/X = Quitter VR
+            <strong>Déplacement:</strong><br>
+            • Joystick gauche = Se déplacer<br>
+            • Joystick droit = Tourner<br><br>
+            <strong>Actions:</strong><br>
+            • Trigger = Sélectionner/Mesurer<br>
+            • Grip = Mode mesure ON/OFF<br>
+            • Bouton Y/B = Menu plein/réduit<br>
+            • Bouton A/X = Reset vue<br>
         </div>
         
         <button class="btn" id="vrButton" disabled>🥽 Entrer en VR</button>
         
         <div id="status"></div>
-    </div>
-
-    <!-- Instructions VR (s'affichent en VR) -->
-    <div id="vr-instructions">
-        <strong>🎮 CONTRÔLES VR:</strong><br>
-        Joystick gauche = Ouvrir Menu<br>
-        Trigger = Sélectionner<br>
-        Grip = Mesurer<br>
-        Bouton A/X = Quitter VR
     </div>
 
     <script>
@@ -164,17 +137,18 @@
         
         let scene, camera, renderer, controls;
         let models = [];
-        let selectedModel = null;
         let modelCounter = 0;
         
         // VR
         let vrSession = null;
         let controller1, controller2;
-        let controllerGrip1, controllerGrip2;
+        let dolly; // Pour le déplacement
         
-        // UI 3D en VR
-        let vrMenu = null;
-        let menuVisible = false;
+        // UI VR
+        let vrMenuFull = null;
+        let vrMenuMini = null;
+        let clockDisplay = null;
+        let menuExpanded = false;
         
         // Raycaster
         let raycaster = new THREE.Raycaster();
@@ -184,6 +158,19 @@
         let measureMode = false;
         let measurePoints = [];
         let measurements = [];
+        
+        // Locomotion
+        let moveSpeed = 0.05;
+        let turnSpeed = 0.02;
+        
+        // Boutons states (pour éviter répétition)
+        let buttonStates = {
+            menuToggle: false,
+            resetView: false
+        };
+        
+        // Position initiale pour reset
+        const initialPosition = new THREE.Vector3(0, 0, 3);
         
         // ============================================
         // INITIALISATION
@@ -203,7 +190,13 @@
                 0.1,
                 1000
             );
-            camera.position.set(0, 1.6, 3);
+            camera.position.copy(initialPosition);
+            
+            // Dolly (conteneur pour la caméra, permet déplacement VR)
+            dolly = new THREE.Group();
+            dolly.position.set(0, 0, 0);
+            dolly.add(camera);
+            scene.add(dolly);
             
             // Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -224,8 +217,8 @@
             // Contrôleurs VR
             setupVRControllers();
             
-            // Menu 3D VR
-            createVRMenu();
+            // UI VR
+            createVRUI();
             
             // Event listeners
             setupEventListeners();
@@ -268,14 +261,14 @@
             controller1.addEventListener('selectstart', onSelectStart);
             controller1.addEventListener('selectend', onSelectEnd);
             controller1.addEventListener('squeezestart', onSqueezeStart);
-            scene.add(controller1);
+            dolly.add(controller1);
             
             // Contrôleur 2 (main gauche)
             controller2 = renderer.xr.getController(1);
             controller2.addEventListener('selectstart', onSelectStart);
             controller2.addEventListener('selectend', onSelectEnd);
             controller2.addEventListener('squeezestart', onSqueezeStart);
-            scene.add(controller2);
+            dolly.add(controller2);
             
             // Rayon laser pour contrôleur 1
             const geometry = new THREE.BufferGeometry().setFromPoints([
@@ -284,7 +277,7 @@
             ]);
             const line = new THREE.Line(
                 geometry,
-                new THREE.LineBasicMaterial({ color: 0x667eea })
+                new THREE.LineBasicMaterial({ color: 0x667eea, linewidth: 2 })
             );
             line.name = 'line';
             controller1.add(line.clone());
@@ -301,16 +294,25 @@
             raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
             raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
             
-            // Vérifier intersection avec le menu VR
-            if (menuVisible) {
-                const menuIntersects = raycaster.intersectObjects(vrMenu.children, true);
+            // Vérifier intersection avec le menu
+            if (menuExpanded) {
+                const menuObjects = vrMenuFull.children.filter(child => child.userData.isButton);
+                const menuIntersects = raycaster.intersectObjects(menuObjects, true);
                 if (menuIntersects.length > 0) {
                     handleMenuClick(menuIntersects[0].object);
                     return;
                 }
+            } else {
+                // Menu mini
+                const miniObjects = vrMenuMini.children.filter(child => child.userData.isButton);
+                const miniIntersects = raycaster.intersectObjects(miniObjects, true);
+                if (miniIntersects.length > 0) {
+                    handleMenuClick(miniIntersects[0].object);
+                    return;
+                }
             }
             
-            // Vérifier intersection avec les modèles
+            // Vérifier intersection avec les modèles (mesure)
             if (measureMode) {
                 const modelIntersects = raycaster.intersectObjects(getAllModelMeshes());
                 if (modelIntersects.length > 0) {
@@ -329,46 +331,238 @@
         }
         
         // ============================================
-        // MENU 3D VR
+        // LOCOMOTION (DÉPLACEMENT)
         // ============================================
         
-        function createVRMenu() {
-            vrMenu = new THREE.Group();
-            vrMenu.position.set(-0.5, 1.5, -1);
-            vrMenu.visible = false;
-            scene.add(vrMenu);
+        function updateLocomotion() {
+            if (!vrSession) return;
+            
+            const session = renderer.xr.getSession();
+            if (!session) return;
+            
+            for (const source of session.inputSources) {
+                if (source.gamepad) {
+                    const gamepad = source.gamepad;
+                    
+                    // Main gauche = Déplacement
+                    if (source.handedness === 'left') {
+                        const xAxis = gamepad.axes[2]; // Joystick X
+                        const yAxis = gamepad.axes[3]; // Joystick Y
+                        
+                        if (Math.abs(xAxis) > 0.1 || Math.abs(yAxis) > 0.1) {
+                            // Obtenir la direction de la caméra
+                            const cameraDirection = new THREE.Vector3();
+                            camera.getWorldDirection(cameraDirection);
+                            cameraDirection.y = 0; // Garder horizontal
+                            cameraDirection.normalize();
+                            
+                            // Direction perpendiculaire (gauche/droite)
+                            const perpDirection = new THREE.Vector3();
+                            perpDirection.crossVectors(cameraDirection, new THREE.Vector3(0, 1, 0));
+                            
+                            // Calculer le mouvement
+                            const moveVector = new THREE.Vector3();
+                            moveVector.addScaledVector(cameraDirection, -yAxis * moveSpeed);
+                            moveVector.addScaledVector(perpDirection, xAxis * moveSpeed);
+                            
+                            // Appliquer au dolly
+                            dolly.position.add(moveVector);
+                        }
+                    }
+                    
+                    // Main droite = Rotation
+                    if (source.handedness === 'right') {
+                        const xAxis = gamepad.axes[2]; // Joystick X
+                        
+                        if (Math.abs(xAxis) > 0.1) {
+                            dolly.rotateY(-xAxis * turnSpeed);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // ============================================
+        // GESTION DES BOUTONS VR
+        // ============================================
+        
+        function checkVRButtons() {
+            if (!vrSession) return;
+            
+            const session = renderer.xr.getSession();
+            if (!session) return;
+            
+            for (const source of session.inputSources) {
+                if (source.gamepad) {
+                    const gamepad = source.gamepad;
+                    
+                    // Bouton Y/B (index 5) = Toggle menu plein/réduit
+                    if (gamepad.buttons[5] && gamepad.buttons[5].pressed) {
+                        if (!buttonStates.menuToggle) {
+                            toggleMenuMode();
+                            buttonStates.menuToggle = true;
+                        }
+                    } else {
+                        buttonStates.menuToggle = false;
+                    }
+                    
+                    // Bouton A/X (index 4) = Reset vue
+                    if (gamepad.buttons[4] && gamepad.buttons[4].pressed) {
+                        if (!buttonStates.resetView) {
+                            resetView();
+                            buttonStates.resetView = true;
+                        }
+                    } else {
+                        buttonStates.resetView = false;
+                    }
+                }
+            }
+        }
+        
+        // ============================================
+        // UI VR
+        // ============================================
+        
+        function createVRUI() {
+            // Menu complet (expandé)
+            createFullMenu();
+            
+            // Menu mini (réduit)
+            createMiniMenu();
+            
+            // Horloge
+            createClock();
+            
+            // Démarrer en mode mini
+            menuExpanded = false;
+            vrMenuFull.visible = false;
+            vrMenuMini.visible = true;
+        }
+        
+        function createFullMenu() {
+            vrMenuFull = new THREE.Group();
+            vrMenuFull.position.set(-0.3, 0.3, -0.5);
+            dolly.add(vrMenuFull);
             
             // Panneau de fond
-            const panelGeometry = new THREE.PlaneGeometry(0.8, 1);
+            const panelGeometry = new THREE.PlaneGeometry(0.5, 0.8);
             const panelMaterial = new THREE.MeshBasicMaterial({
                 color: 0x222222,
-                opacity: 0.9,
+                opacity: 0.85,
                 transparent: true,
                 side: THREE.DoubleSide
             });
             const panel = new THREE.Mesh(panelGeometry, panelMaterial);
-            vrMenu.add(panel);
+            vrMenuFull.add(panel);
             
             // Titre
-            createVRText('🔧 MENU CAO', 0, 0.4, 0.02);
+            createVRText(vrMenuFull, '🔧 MENU CAO', 0, 0.35, 0.02, 0.4, 0.08, 40);
             
             // Boutons
-            createVRButton('📏 Mesurer', 0, 0.2, () => toggleMeasureMode());
-            createVRButton('📸 Screenshot', 0, 0.05, () => takeScreenshot());
-            createVRButton('🗑️ Effacer Mesures', 0, -0.1, () => clearMeasures());
-            createVRButton('❌ Fermer Menu', 0, -0.35, () => toggleVRMenu());
-            
-            console.log('🎨 Menu VR créé');
+            createVRButton(vrMenuFull, '📏 Mesurer', 0, 0.2, () => toggleMeasureMode());
+            createVRButton(vrMenuFull, '📸 Screenshot', 0, 0.08, () => takeScreenshot());
+            createVRButton(vrMenuFull, '🗑️ Effacer Mesures', 0, -0.04, () => clearMeasures());
+            createVRButton(vrMenuFull, '🔄 Reset Vue', 0, -0.16, () => resetView());
+            createVRButton(vrMenuFull, '➖ Réduire', 0, -0.32, () => toggleMenuMode());
         }
         
-        function createVRText(text, x, y, z) {
+        function createMiniMenu() {
+            vrMenuMini = new THREE.Group();
+            vrMenuMini.position.set(-0.25, 0.25, -0.4);
+            dolly.add(vrMenuMini);
+            
+            // Panneau compact
+            const panelGeometry = new THREE.PlaneGeometry(0.25, 0.25);
+            const panelMaterial = new THREE.MeshBasicMaterial({
+                color: 0x222222,
+                opacity: 0.85,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+            vrMenuMini.add(panel);
+            
+            // Bouton expand
+            createVRButton(vrMenuMini, '➕ Menu', 0, 0.05, () => toggleMenuMode(), 0.22, 0.06);
+            
+            // Bouton reset compact
+            createVRButton(vrMenuMini, '🔄', 0, -0.05, () => resetView(), 0.1, 0.06);
+        }
+        
+        function createClock() {
+            clockDisplay = new THREE.Group();
+            clockDisplay.position.set(0.25, 0.3, -0.4);
+            dolly.add(clockDisplay);
+            
+            // Fond horloge
+            const clockBg = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.15, 0.08),
+                new THREE.MeshBasicMaterial({
+                    color: 0x667eea,
+                    opacity: 0.9,
+                    transparent: true,
+                    side: THREE.DoubleSide
+                })
+            );
+            clockDisplay.add(clockBg);
+            
+            // Texte horloge (sera mis à jour)
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 128;
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const textMaterial = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true
+            });
+            
+            const textMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.14, 0.07),
+                textMaterial
+            );
+            textMesh.position.z = 0.01;
+            textMesh.userData.canvas = canvas;
+            textMesh.userData.texture = texture;
+            clockDisplay.add(textMesh);
+        }
+        
+        function updateClock() {
+            if (!clockDisplay) return;
+            
+            const textMesh = clockDisplay.children.find(child => child.userData.canvas);
+            if (!textMesh) return;
+            
+            const canvas = textMesh.userData.canvas;
+            const ctx = canvas.getContext('2d');
+            
+            // Effacer
+            ctx.clearRect(0, 0, 256, 128);
+            
+            // Heure actuelle
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            // Dessiner
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${hours}:${minutes}:${seconds}`, 128, 80);
+            
+            // Mettre à jour la texture
+            textMesh.userData.texture.needsUpdate = true;
+        }
+        
+        function createVRText(parent, text, x, y, z, width = 0.4, height = 0.08, fontSize = 40) {
             const canvas = document.createElement('canvas');
             canvas.width = 512;
             canvas.height = 128;
             const ctx = canvas.getContext('2d');
             
             ctx.fillStyle = 'white';
-            ctx.font = 'bold 60px Arial';
+            ctx.font = `bold ${fontSize}px Arial`;
             ctx.textAlign = 'center';
             ctx.fillText(text, 256, 80);
             
@@ -378,28 +572,29 @@
                 transparent: true
             });
             
-            const geometry = new THREE.PlaneGeometry(0.6, 0.15);
+            const geometry = new THREE.PlaneGeometry(width, height);
             const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(x, y, z + 0.01);
-            vrMenu.add(mesh);
+            mesh.position.set(x, y, z);
+            parent.add(mesh);
             
             return mesh;
         }
         
-        function createVRButton(text, x, y, onClick) {
+        function createVRButton(parent, text, x, y, onClick, width = 0.45, height = 0.1) {
             const group = new THREE.Group();
             group.position.set(x, y, 0.01);
             
             // Fond du bouton
-            const buttonGeometry = new THREE.PlaneGeometry(0.6, 0.12);
+            const buttonGeometry = new THREE.PlaneGeometry(width, height);
             const buttonMaterial = new THREE.MeshBasicMaterial({
                 color: 0x667eea,
                 transparent: true,
-                opacity: 0.8
+                opacity: 0.9
             });
             const button = new THREE.Mesh(buttonGeometry, buttonMaterial);
             button.userData.isButton = true;
             button.userData.onClick = onClick;
+            button.userData.originalColor = 0x667eea;
             group.add(button);
             
             // Texte du bouton
@@ -409,7 +604,7 @@
             const ctx = canvas.getContext('2d');
             
             ctx.fillStyle = 'white';
-            ctx.font = '48px Arial';
+            ctx.font = 'bold 42px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(text, 256, 80);
             
@@ -420,13 +615,13 @@
             });
             
             const textMesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.58, 0.11),
+                new THREE.PlaneGeometry(width - 0.02, height - 0.02),
                 textMaterial
             );
             textMesh.position.z = 0.01;
             group.add(textMesh);
             
-            vrMenu.add(group);
+            parent.add(group);
             return group;
         }
         
@@ -439,12 +634,19 @@
             
             if (current && current.userData.onClick) {
                 // Effet visuel
-                if (current.material) {
-                    const originalColor = current.material.color.getHex();
-                    current.material.color.setHex(0xffffff);
-                    setTimeout(() => {
-                        current.material.color.setHex(originalColor);
-                    }, 100);
+                const originalColor = current.userData.originalColor || 0x667eea;
+                current.material.color.setHex(0xffffff);
+                setTimeout(() => {
+                    current.material.color.setHex(originalColor);
+                }, 150);
+                
+                // Haptic feedback
+                if (vrSession) {
+                    for (const source of vrSession.inputSources) {
+                        if (source.gamepad && source.gamepad.hapticActuators) {
+                            source.gamepad.hapticActuators[0].pulse(0.5, 100);
+                        }
+                    }
                 }
                 
                 // Exécuter l'action
@@ -452,61 +654,26 @@
             }
         }
         
-        function toggleVRMenu() {
-            menuVisible = !menuVisible;
-            vrMenu.visible = menuVisible;
-            
-            if (menuVisible) {
-                // Positionner le menu devant l'utilisateur
-                const cameraDirection = new THREE.Vector3();
-                camera.getWorldDirection(cameraDirection);
-                
-                const menuPosition = camera.position.clone();
-                menuPosition.add(cameraDirection.multiplyScalar(1.5));
-                menuPosition.y = camera.position.y;
-                
-                vrMenu.position.copy(menuPosition);
-                vrMenu.lookAt(camera.position);
-            }
+        function toggleMenuMode() {
+            menuExpanded = !menuExpanded;
+            vrMenuFull.visible = menuExpanded;
+            vrMenuMini.visible = !menuExpanded;
         }
         
-        // ============================================
-        // GESTION DES INPUTS VR
-        // ============================================
+        function resetView() {
+            // Réinitialiser position du dolly
+            dolly.position.set(0, 0, 0);
+            dolly.rotation.set(0, 0, 0);
+            
+            // Réinitialiser position caméra relative
+            camera.position.copy(initialPosition);
+            
+            showVRNotification('🔄 Vue réinitialisée');
+        }
         
-        function checkVRInput() {
-            if (!vrSession) return;
-            
-            // Récupérer les gamepads
-            const session = renderer.xr.getSession();
-            if (!session) return;
-            
-            for (const source of session.inputSources) {
-                if (source.gamepad) {
-                    const gamepad = source.gamepad;
-                    
-                    // Bouton pour ouvrir le menu (thumbstick ou bouton)
-                    // Index 4 = Bouton A/X sur Quest
-                    if (gamepad.buttons[4] && gamepad.buttons[4].pressed) {
-                        if (!this.menuButtonPressed) {
-                            toggleVRMenu();
-                            this.menuButtonPressed = true;
-                        }
-                    } else {
-                        this.menuButtonPressed = false;
-                    }
-                    
-                    // Joystick gauche pour menu
-                    if (gamepad.axes[2] < -0.8 || gamepad.axes[3] < -0.8) {
-                        if (!this.joystickPressed) {
-                            toggleVRMenu();
-                            this.joystickPressed = true;
-                        }
-                    } else {
-                        this.joystickPressed = false;
-                    }
-                }
-            }
+        function showVRNotification(text) {
+            // TODO: Afficher une notification temporaire en VR
+            console.log(text);
         }
         
         // ============================================
@@ -617,7 +784,7 @@
             const size = box.getSize(new THREE.Vector3());
             
             model.position.sub(center);
-            model.position.y += 1; // Hauteur des yeux en VR
+            model.position.y += 1;
             
             const maxDim = Math.max(size.x, size.y, size.z);
             const scale = 2 / maxDim;
@@ -648,7 +815,6 @@
         function addMeasurePoint(point) {
             measurePoints.push(point);
             
-            // Créer une sphère
             const sphere = new THREE.Mesh(
                 new THREE.SphereGeometry(0.02),
                 new THREE.MeshBasicMaterial({ color: 0xff0000 })
@@ -659,7 +825,6 @@
             if (measurePoints.length === 2) {
                 const distance = measurePoints[0].distanceTo(measurePoints[1]);
                 
-                // Ligne
                 const lineGeometry = new THREE.BufferGeometry().setFromPoints(measurePoints);
                 const line = new THREE.Line(
                     lineGeometry,
@@ -667,7 +832,6 @@
                 );
                 scene.add(line);
                 
-                // Label
                 createDistanceLabel(
                     measurePoints[0].clone().lerp(measurePoints[1], 0.5),
                     distance
@@ -758,16 +922,8 @@
                 
                 await renderer.xr.setSession(vrSession);
                 
-                // Masquer l'UI desktop
                 document.getElementById('ui-panel').style.display = 'none';
                 
-                // Afficher les instructions VR
-                document.getElementById('vr-instructions').style.display = 'block';
-                setTimeout(() => {
-                    document.getElementById('vr-instructions').style.display = 'none';
-                }, 5000);
-                
-                // Écouter la fin de session
                 vrSession.addEventListener('end', onVRSessionEnd);
                 
                 showStatus('🥽 Mode VR activé!', false);
@@ -779,8 +935,9 @@
         function onVRSessionEnd() {
             vrSession = null;
             document.getElementById('ui-panel').style.display = 'block';
-            menuVisible = false;
-            vrMenu.visible = false;
+            menuExpanded = false;
+            vrMenuFull.visible = false;
+            vrMenuMini.visible = true;
         }
         
         // ============================================
@@ -819,11 +976,13 @@
         // ============================================
         
         function animate() {
-            // Vérifier les inputs VR
-            checkVRInput();
-            
-            // Mettre à jour les contrôles desktop
-            if (!renderer.xr.isPresenting) {
+            // VR locomotion et inputs
+            if (renderer.xr.isPresenting) {
+                updateLocomotion();
+                checkVRButtons();
+                updateClock();
+            } else {
+                // Desktop controls
                 controls.update();
             }
             
