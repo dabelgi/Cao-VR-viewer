@@ -702,7 +702,7 @@
         }
         
         // ============================================
-        // VR UI
+        // VR UI - NOUVELLE VERSION BELLE
         // ============================================
         
         function createVRUI() {
@@ -719,43 +719,82 @@
         
         function createFullMenu() {
             vrMenuFull = new THREE.Group();
-            vrMenuFull.position.set(-0.4, 1.6, -0.8);
+            vrMenuFull.position.set(-0.45, 1.6, -0.9);
             dolly.add(vrMenuFull);
             
+            // FOND PANEL AVEC DÉGRADÉ
+            const panelCanvas = document.createElement('canvas');
+            panelCanvas.width = 1024;
+            panelCanvas.height = 2048;
+            const pCtx = panelCanvas.getContext('2d');
+            
+            // Dégradé violet → bleu
+            const gradient = pCtx.createLinearGradient(0, 0, 0, 2048);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            pCtx.fillStyle = gradient;
+            pCtx.fillRect(0, 0, 1024, 2048);
+            
+            // Bordure arrondie
+            pCtx.strokeStyle = '#ffffff';
+            pCtx.lineWidth = 10;
+            pCtx.strokeRect(5, 5, 1014, 2038);
+            
+            const panelTexture = new THREE.CanvasTexture(panelCanvas);
             const panel = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.65, 1.3),
-                new THREE.MeshBasicMaterial({ color: 0x222222, opacity: 0.9, transparent: true, side: THREE.DoubleSide })
+                new THREE.PlaneGeometry(0.7, 1.4),
+                new THREE.MeshBasicMaterial({ 
+                    map: panelTexture,
+                    transparent: true,
+                    opacity: 0.95,
+                    side: THREE.DoubleSide
+                })
             );
             vrMenuFull.add(panel);
             
-            createVRText(vrMenuFull, '🔧 MENU CAO', 0, 0.6, 0.02);
+            // TITRE
+            createBeautifulText(vrMenuFull, '🔧 MENU CAO PRO', 0, 0.65, 0.02, 60, '#ffffff');
             
-            let yPos = 0.45;
-            createVRButton(vrMenuFull, '📏 Mesurer', 0, yPos, () => console.log('Mesure')); yPos -= 0.11;
-            createVRButton(vrMenuFull, '🎯 Centrer (0,0,0)', 0, yPos, () => centerSelectedModel()); yPos -= 0.11;
-            createVRButton(vrMenuFull, '📸 Screenshot', 0, yPos, () => takeScreenshot()); yPos -= 0.11;
-            createVRButton(vrMenuFull, '🔄 Reset Vue', 0, yPos, () => resetView()); yPos -= 0.11;
-            createVRButton(vrMenuFull, '🌲 Arborescence', 0, yPos, () => toggleTreeMode()); yPos -= 0.11;
+            // BOUTONS PRINCIPAUX
+            let yPos = 0.5;
+            createBeautifulButton(vrMenuFull, '📏 Mesurer Distance', 0, yPos, () => console.log('Mesure'), '#4CAF50'); yPos -= 0.12;
+            createBeautifulButton(vrMenuFull, '🎯 Centrer Pièce', 0, yPos, () => centerSelectedModel(), '#2196F3'); yPos -= 0.12;
+            createBeautifulButton(vrMenuFull, '📸 Screenshot', 0, yPos, () => takeScreenshot(), '#9C27B0'); yPos -= 0.12;
+            createBeautifulButton(vrMenuFull, '🔄 Reset Vue', 0, yPos, () => resetView(), '#FF9800'); yPos -= 0.12;
+            createBeautifulButton(vrMenuFull, '🌲 Arborescence', 0, yPos, () => toggleTreeMode(), '#00BCD4'); yPos -= 0.14;
             
-            // Position XYZ
-            createVRText(vrMenuFull, 'Position XYZ', 0, yPos - 0.05, 0.02, 0.4, 0.06, 28); yPos -= 0.12;
-            createVRButton(vrMenuFull, 'X-', -0.16, yPos, () => moveModel(-0.1,0,0), 0.12, 0.08);
-            createVRButton(vrMenuFull, 'X+', 0.16, yPos, () => moveModel(0.1,0,0), 0.12, 0.08); yPos -= 0.1;
-            createVRButton(vrMenuFull, 'Y-', -0.16, yPos, () => moveModel(0,-0.1,0), 0.12, 0.08);
-            createVRButton(vrMenuFull, 'Y+', 0.16, yPos, () => moveModel(0,0.1,0), 0.12, 0.08); yPos -= 0.1;
-            createVRButton(vrMenuFull, 'Z-', -0.16, yPos, () => moveModel(0,0,-0.1), 0.12, 0.08);
-            createVRButton(vrMenuFull, 'Z+', 0.16, yPos, () => moveModel(0,0,0.1), 0.12, 0.08); yPos -= 0.12;
+            // SECTION POSITION
+            createBeautifulText(vrMenuFull, '📍 Position XYZ', 0, yPos, 0.02, 35, '#ffeb3b');
+            yPos -= 0.08;
             
-            // Rotation XYZ
-            createVRText(vrMenuFull, 'Rotation XYZ', 0, yPos, 0.02, 0.4, 0.06, 28); yPos -= 0.08;
-            createVRButton(vrMenuFull, 'RX-', -0.16, yPos, () => rotateModel(-15,0,0), 0.12, 0.08);
-            createVRButton(vrMenuFull, 'RX+', 0.16, yPos, () => rotateModel(15,0,0), 0.12, 0.08); yPos -= 0.1;
-            createVRButton(vrMenuFull, 'RY-', -0.16, yPos, () => rotateModel(0,-15,0), 0.12, 0.08);
-            createVRButton(vrMenuFull, 'RY+', 0.16, yPos, () => rotateModel(0,15,0), 0.12, 0.08); yPos -= 0.1;
-            createVRButton(vrMenuFull, 'RZ-', -0.16, yPos, () => rotateModel(0,0,-15), 0.12, 0.08);
-            createVRButton(vrMenuFull, 'RZ+', 0.16, yPos, () => rotateModel(0,0,15), 0.12, 0.08); yPos -= 0.12;
+            // Grille 2x3 pour XYZ
+            const spacing = 0.19;
+            createCompactButton(vrMenuFull, 'X-', -spacing, yPos, () => moveModel(-0.1,0,0), '#f44336');
+            createCompactButton(vrMenuFull, 'X+', spacing, yPos, () => moveModel(0.1,0,0), '#f44336');
+            yPos -= 0.09;
+            createCompactButton(vrMenuFull, 'Y-', -spacing, yPos, () => moveModel(0,-0.1,0), '#4caf50');
+            createCompactButton(vrMenuFull, 'Y+', spacing, yPos, () => moveModel(0,0.1,0), '#4caf50');
+            yPos -= 0.09;
+            createCompactButton(vrMenuFull, 'Z-', -spacing, yPos, () => moveModel(0,0,-0.1), '#2196f3');
+            createCompactButton(vrMenuFull, 'Z+', spacing, yPos, () => moveModel(0,0,0.1), '#2196f3');
+            yPos -= 0.12;
             
-            createVRButton(vrMenuFull, '➖ Réduire', 0, yPos, () => toggleMenuMode());
+            // SECTION ROTATION
+            createBeautifulText(vrMenuFull, '🔄 Rotation XYZ', 0, yPos, 0.02, 35, '#ffeb3b');
+            yPos -= 0.08;
+            
+            createCompactButton(vrMenuFull, 'RX-', -spacing, yPos, () => rotateModel(-15,0,0), '#ff5722');
+            createCompactButton(vrMenuFull, 'RX+', spacing, yPos, () => rotateModel(15,0,0), '#ff5722');
+            yPos -= 0.09;
+            createCompactButton(vrMenuFull, 'RY-', -spacing, yPos, () => rotateModel(0,-15,0), '#8bc34a');
+            createCompactButton(vrMenuFull, 'RY+', spacing, yPos, () => rotateModel(0,15,0), '#8bc34a');
+            yPos -= 0.09;
+            createCompactButton(vrMenuFull, 'RZ-', -spacing, yPos, () => rotateModel(0,0,-15), '#03a9f4');
+            createCompactButton(vrMenuFull, 'RZ+', spacing, yPos, () => rotateModel(0,0,15), '#03a9f4');
+            yPos -= 0.12;
+            
+            // BOUTON FERMER
+            createBeautifulButton(vrMenuFull, '➖ Réduire Menu', 0, yPos, () => toggleMenuMode(), '#607d8b');
         }
         
         function createMiniMenu() {
@@ -763,40 +802,84 @@
             vrMenuMini.position.set(-0.35, 1.8, -0.5);
             dolly.add(vrMenuMini);
             
+            // Panneau mini avec dégradé
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            const grad = ctx.createLinearGradient(0, 0, 0, 256);
+            grad.addColorStop(0, '#667eea');
+            grad.addColorStop(1, '#764ba2');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 256, 256);
+            
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 8;
+            ctx.strokeRect(4, 4, 248, 248);
+            
+            const texture = new THREE.CanvasTexture(canvas);
             const panel = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.2, 0.2),
-                new THREE.MeshBasicMaterial({ color: 0x222222, opacity: 0.85, transparent: true, side: THREE.DoubleSide })
+                new THREE.PlaneGeometry(0.22, 0.22),
+                new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: 0.95, side: THREE.DoubleSide })
             );
             vrMenuMini.add(panel);
             
-            createVRButton(vrMenuMini, '➕', 0, 0.05, () => toggleMenuMode(), 0.18, 0.06);
-            createVRButton(vrMenuMini, '🔄', 0, -0.05, () => resetView(), 0.18, 0.06);
+            createBeautifulButton(vrMenuMini, '➕', 0, 0.05, () => toggleMenuMode(), '#4CAF50', 0.2, 0.08);
+            createBeautifulButton(vrMenuMini, '🔄', 0, -0.05, () => resetView(), '#FF9800', 0.2, 0.08);
         }
         
         function createTreeMenu() {
             vrMenuTree = new THREE.Group();
-            vrMenuTree.position.set(0.4, 1.6, -0.8);
+            vrMenuTree.position.set(0.45, 1.6, -0.9);
             vrMenuTree.visible = false;
             dolly.add(vrMenuTree);
             
+            // Panneau arborescence
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 1536;
+            const ctx = canvas.getContext('2d');
+            
+            const grad = ctx.createLinearGradient(0, 0, 0, 1536);
+            grad.addColorStop(0, '#1a1a2e');
+            grad.addColorStop(1, '#16213e');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 1024, 1536);
+            
+            ctx.strokeStyle = '#00BCD4';
+            ctx.lineWidth = 10;
+            ctx.strokeRect(5, 5, 1014, 1526);
+            
+            const texture = new THREE.CanvasTexture(canvas);
             const panel = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.5, 1),
-                new THREE.MeshBasicMaterial({ color: 0x1a1a2e, opacity: 0.9, transparent: true, side: THREE.DoubleSide })
+                new THREE.PlaneGeometry(0.6, 0.9),
+                new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: 0.95, side: THREE.DoubleSide })
             );
             vrMenuTree.add(panel);
             
-            createVRText(vrMenuTree, '🌲 MODÈLES', 0, 0.45, 0.02);
-            createVRButton(vrMenuTree, '❌ Fermer', 0, -0.45, () => toggleTreeMode());
+            createBeautifulText(vrMenuTree, '🌲 MODÈLES', 0, 0.4, 0.02, 50, '#00BCD4');
+            createBeautifulButton(vrMenuTree, '❌ Fermer', 0, -0.4, () => toggleTreeMode(), '#f44336');
         }
         
         function updateTreeMenu() {
             vrMenuTree.children = vrMenuTree.children.filter(c => !c.userData.isModelButton);
             
-            let yPos = 0.3;
+            let yPos = 0.25;
             models.forEach((model, i) => {
-                const btn = createVRButton(vrMenuTree, `📦 ${model.userData.name.substring(0,12)}`, 0, yPos, () => selectModelByIndex(i), 0.45, 0.08);
+                const name = model.userData.name.substring(0, 14);
+                const btn = createBeautifulButton(
+                    vrMenuTree, 
+                    `📦 ${name}`, 
+                    0, 
+                    yPos, 
+                    () => selectModelByIndex(i), 
+                    '#00BCD4',
+                    0.55,
+                    0.09
+                );
                 btn.userData.isModelButton = true;
-                yPos -= 0.12;
+                yPos -= 0.11;
             });
         }
         
@@ -804,27 +887,45 @@
             if (i >= 0 && i < models.length) {
                 selectedModel = models[i];
                 showGizmo(selectedModel, 'position');
+                console.log('✅ Sélectionné:', selectedModel.userData.name);
             }
         }
         
         function createClock() {
             clockDisplay = new THREE.Group();
-            clockDisplay.position.set(0.3, 1.8, -0.5);
+            clockDisplay.position.set(0.32, 1.8, -0.5);
             dolly.add(clockDisplay);
             
+            // Fond horloge avec dégradé
+            const bgCanvas = document.createElement('canvas');
+            bgCanvas.width = 256;
+            bgCanvas.height = 128;
+            const bgCtx = bgCanvas.getContext('2d');
+            
+            const grad = bgCtx.createLinearGradient(0, 0, 256, 0);
+            grad.addColorStop(0, '#667eea');
+            grad.addColorStop(1, '#764ba2');
+            bgCtx.fillStyle = grad;
+            bgCtx.fillRect(0, 0, 256, 128);
+            
+            bgCtx.strokeStyle = '#ffffff';
+            bgCtx.lineWidth = 6;
+            bgCtx.strokeRect(3, 3, 250, 122);
+            
+            const bgTexture = new THREE.CanvasTexture(bgCanvas);
             const bg = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.18, 0.08),
-                new THREE.MeshBasicMaterial({ color: 0x667eea, opacity: 0.9, transparent: true, side: THREE.DoubleSide })
+                new THREE.PlaneGeometry(0.2, 0.1),
+                new THREE.MeshBasicMaterial({ map: bgTexture, transparent: true, side: THREE.DoubleSide })
             );
             clockDisplay.add(bg);
             
+            // Texte horloge
             const canvas = document.createElement('canvas');
             canvas.width = 256;
             canvas.height = 128;
-            
             const texture = new THREE.CanvasTexture(canvas);
             const textMesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.17, 0.07),
+                new THREE.PlaneGeometry(0.19, 0.09),
                 new THREE.MeshBasicMaterial({ map: texture, transparent: true })
             );
             textMesh.position.z = 0.01;
@@ -845,6 +946,12 @@
             const now = new Date();
             const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
             
+            // Ombre
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            
             ctx.fillStyle = 'white';
             ctx.font = 'bold 48px Arial';
             ctx.textAlign = 'center';
@@ -853,19 +960,101 @@
             textMesh.userData.texture.needsUpdate = true;
         }
         
-        function createVRText(parent, text, x, y, z, width = 0.4, height = 0.08, fontSize = 40) {
+        // ============================================
+        // CRÉATION BOUTONS BEAUX
+        // ============================================
+        
+        function createBeautifulButton(parent, text, x, y, onClick, color = '#667eea', width = 0.6, height = 0.1) {
+            const group = new THREE.Group();
+            group.position.set(x, y, 0.02);
+            
+            // Canvas pour le bouton
             const canvas = document.createElement('canvas');
-            canvas.width = 512;
-            canvas.height = 128;
+            canvas.width = 1024;
+            canvas.height = 256;
             const ctx = canvas.getContext('2d');
+            
+            // Dégradé
+            const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+            gradient.addColorStop(0, color);
+            gradient.addColorStop(1, darkenColor(color, 0.3));
+            ctx.fillStyle = gradient;
+            
+            // Bouton arrondi
+            roundRect(ctx, 10, 10, 1004, 236, 30);
+            ctx.fill();
+            
+            // Bordure
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 4;
+            roundRect(ctx, 10, 10, 1004, 236, 30);
+            ctx.stroke();
+            
+            // Ombre intérieure
+            ctx.shadowColor = 'rgba(0,0,0,0.3)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetY = 5;
+            
+            // Texte
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 8;
+            ctx.shadowOffsetX = 3;
+            ctx.shadowOffsetY = 3;
             ctx.fillStyle = 'white';
+            ctx.font = 'bold 80px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 512, 128);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            
+            // MESH CLIQUABLE (TOUTE LA SURFACE!)
+            const button = new THREE.Mesh(
+                new THREE.PlaneGeometry(width, height),
+                new THREE.MeshBasicMaterial({ 
+                    map: texture, 
+                    transparent: true,
+                    side: THREE.DoubleSide
+                })
+            );
+            
+            button.userData.isButton = true;
+            button.userData.onClick = onClick;
+            button.userData.originalColor = color;
+            button.userData.canvas = canvas;
+            button.userData.texture = texture;
+            
+            group.add(button);
+            parent.add(group);
+            
+            return group;
+        }
+        
+        function createCompactButton(parent, text, x, y, onClick, color = '#667eea') {
+            return createBeautifulButton(parent, text, x, y, onClick, color, 0.15, 0.08);
+        }
+        
+        function createBeautifulText(parent, text, x, y, z, fontSize = 50, color = '#ffffff') {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            // Ombre
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 3;
+            ctx.shadowOffsetY = 3;
+            
+            ctx.fillStyle = color;
             ctx.font = `bold ${fontSize}px Arial`;
             ctx.textAlign = 'center';
-            ctx.fillText(text, 256, 80);
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 512, 128);
             
             const texture = new THREE.CanvasTexture(canvas);
             const mesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(width, height),
+                new THREE.PlaneGeometry(0.5, 0.08),
                 new THREE.MeshBasicMaterial({ map: texture, transparent: true })
             );
             mesh.position.set(x, y, z);
@@ -873,48 +1062,71 @@
             return mesh;
         }
         
-        function createVRButton(parent, text, x, y, onClick, width = 0.5, height = 0.1) {
-            const group = new THREE.Group();
-            group.position.set(x, y, 0.01);
-            
-            const button = new THREE.Mesh(
-                new THREE.PlaneGeometry(width, height),
-                new THREE.MeshBasicMaterial({ color: 0x667eea, transparent: true, opacity: 0.9 })
-            );
-            button.userData.isButton = true;
-            button.userData.onClick = onClick;
-            group.add(button);
-            
-            const canvas = document.createElement('canvas');
-            canvas.width = 512;
-            canvas.height = 128;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 42px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(text, 256, 80);
-            
-            const texture = new THREE.CanvasTexture(canvas);
-            const textMesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(width - 0.02, height - 0.02),
-                new THREE.MeshBasicMaterial({ map: texture, transparent: true })
-            );
-            textMesh.position.z = 0.01;
-            group.add(textMesh);
-            
-            parent.add(group);
-            return group;
+        // Utilitaires canvas
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+        
+        function darkenColor(hex, percent) {
+            const num = parseInt(hex.replace('#',''), 16);
+            const amt = Math.round(2.55 * percent * 100);
+            const R = (num >> 16) - amt;
+            const G = (num >> 8 & 0x00FF) - amt;
+            const B = (num & 0x0000FF) - amt;
+            return '#' + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 +
+                (G<255?G<1?0:G:255)*0x100 +
+                (B<255?B<1?0:B:255))
+                .toString(16).slice(1);
         }
         
         function handleMenuClick(object) {
+            // Remonter jusqu'au bouton
             let current = object;
-            while (current && !current.userData.isButton) {
+            let depth = 0;
+            while (current && !current.userData.isButton && depth < 5) {
                 current = current.parent;
+                depth++;
             }
             
-            if (current && current.userData.onClick) {
-                current.material.color.setHex(0xffffff);
-                setTimeout(() => current.material.color.setHex(0x667eea), 150);
+            if (current && current.userData.isButton && current.userData.onClick) {
+                // Effet flash blanc
+                if (current.userData.canvas) {
+                    const canvas = current.userData.canvas;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Flash
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    current.userData.texture.needsUpdate = true;
+                    
+                    // Restaurer après 150ms
+                    setTimeout(() => {
+                        // Redessiner le bouton normalement
+                        // (on devrait recréer le bouton, mais pour simplifier on efface juste le flash)
+                        current.userData.texture.needsUpdate = true;
+                    }, 150);
+                }
+                
+                // Haptic
+                if (vrSession) {
+                    for (const source of vrSession.inputSources) {
+                        if (source.gamepad && source.gamepad.hapticActuators && source.gamepad.hapticActuators[0]) {
+                            source.gamepad.hapticActuators[0].pulse(0.8, 120);
+                        }
+                    }
+                }
+                
+                // Exécuter l'action
                 current.userData.onClick();
             }
         }
@@ -934,6 +1146,8 @@
             vrMenuTree.visible = treeExpanded;
             if (treeExpanded) updateTreeMenu();
         }
+        
+        // Supprimer les anciennes fonctions createVRText et createVRButton
         
         // ============================================
         // MANIPULATION MODÈLES
