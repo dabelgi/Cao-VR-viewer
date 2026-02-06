@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visionneuse CAO VR - Version Finale</title>
+    <title>Visionneuse CAO VR - Ultra Modern UI</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
@@ -12,9 +12,10 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0a;
             overflow: hidden;
         }
         
@@ -22,204 +23,240 @@
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            border-radius: 15px;
-            max-width: 420px;
+            background: rgba(15, 15, 25, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 20px;
+            max-width: 450px;
             max-height: 90vh;
             overflow-y: auto;
             z-index: 100;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
         }
         
-        h1 { color: #667eea; font-size: 20px; margin-bottom: 15px; }
-        h2 { color: #667eea; font-size: 16px; margin: 15px 0 10px 0; border-bottom: 2px solid #667eea; padding-bottom: 5px; }
+        h1 {
+            background: linear-gradient(135deg, #00f5ff 0%, #ff00ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 24px;
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
+        }
+        
+        h2 {
+            color: #00f5ff;
+            font-size: 16px;
+            margin: 20px 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(0, 245, 255, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
         
         .btn {
             width: 100%;
-            padding: 12px;
-            margin: 8px 0;
+            padding: 14px;
+            margin: 10px 0;
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
+            border-radius: 12px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            position: relative;
+            overflow: hidden;
         }
         
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:active {
+            transform: translateY(-1px) scale(0.98);
+        }
         
         .info-box {
-            background: #f0f4ff;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 10px 0;
-            font-size: 12px;
+            background: rgba(0, 245, 255, 0.1);
+            border: 1px solid rgba(0, 245, 255, 0.3);
+            padding: 15px;
+            border-radius: 12px;
+            margin: 12px 0;
+            font-size: 13px;
+            color: #fff;
+            line-height: 1.6;
         }
         
         .scene-selector {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-            margin: 10px 0;
+            gap: 10px;
+            margin: 12px 0;
         }
         
         .scene-btn {
-            padding: 10px;
-            border: 2px solid #667eea;
-            border-radius: 8px;
-            background: white;
+            padding: 12px 8px;
+            border: 2px solid rgba(0, 245, 255, 0.3);
+            border-radius: 12px;
+            background: rgba(15, 15, 25, 0.8);
             cursor: pointer;
             text-align: center;
-            font-size: 12px;
+            font-size: 13px;
+            color: #00f5ff;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .scene-btn:hover {
+            background: rgba(0, 245, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 245, 255, 0.4);
         }
         
         .scene-btn.active {
-            background: #667eea;
-            color: white;
+            background: linear-gradient(135deg, #00f5ff, #ff00ff);
+            color: #000;
+            border-color: transparent;
+            box-shadow: 0 5px 20px rgba(0, 245, 255, 0.6);
         }
         
         #status {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 8px;
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 10px;
             font-size: 13px;
             text-align: center;
             display: none;
+            font-weight: 600;
         }
         
-        #status.success { background: #d4edda; color: #155724; }
-        #status.error { background: #f8d7da; color: #721c24; }
+        #status.success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            color: #4caf50;
+        }
+        
+        #status.error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            color: #f44336;
+        }
+        
+        /* Scrollbar custom */
+        #ui-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #ui-panel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        
+        #ui-panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #00f5ff, #ff00ff);
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
     <div id="ui-panel">
-        <h1>🥽 Visionneuse CAO VR Pro</h1>
+        <h1>🚀 CAO VR PRO</h1>
         
         <div class="info-box">
-            <strong>Formats:</strong> GLTF, GLB, STL, OBJ, FBX
+            <strong>📦 Formats:</strong> GLTF • GLB • STL • OBJ • FBX
         </div>
         
         <input type="file" id="fileInput" multiple accept=".gltf,.glb,.stl,.obj,.fbx" style="display:none">
         <button class="btn" onclick="document.getElementById('fileInput').click()">
-            📁 Charger Modèles 3D
+            📁 CHARGER MODÈLES 3D
         </button>
         
-        <h2>🌍 Scènes d'Environnement</h2>
+        <h2>🌍 ENVIRONNEMENTS</h2>
         <div class="scene-selector">
-            <div class="scene-btn active" onclick="changeScene('default')">
-                🏭 Atelier
-            </div>
-            <div class="scene-btn" onclick="changeScene('ocean')">
-                🌊 Océan
-            </div>
-            <div class="scene-btn" onclick="changeScene('industry')">
-                ⚙️ Industrie
-            </div>
+            <div class="scene-btn active" onclick="changeScene('default')">🏭 Atelier</div>
+            <div class="scene-btn" onclick="changeScene('ocean')">🌊 Océan</div>
+            <div class="scene-btn" onclick="changeScene('industry')">⚙️ Usine</div>
         </div>
         
         <input type="file" id="sceneInput" accept=".gltf,.glb,.fbx" style="display:none">
         <button class="btn" onclick="document.getElementById('sceneInput').click()">
-            🎨 Charger Scène Custom
+            🎨 SCÈNE CUSTOM
         </button>
         
-        <h2>🎮 Contrôles VR</h2>
-        <div class="info-box">
-            <strong>Déplacement:</strong><br>
-            • Joystick G ⬆️⬇️⬅️➡️ = Se déplacer<br>
-            • Joystick G ⬆️⬇️ + Bouton A = Monter/Descendre<br>
-            • Joystick D ⬅️➡️ = Tourner<br><br>
-            <strong>Actions:</strong><br>
-            • Trigger = Sélectionner/Cliquer<br>
-            • Grip = Saisir pièce<br>
-            • Bouton Y = Menu complet ↔ mini<br>
-            • Bouton X = Arborescence<br>
-            • Bouton B = Afficher/Cacher textures
+        <h2>🎮 CONTRÔLES VR</h2>
+        <div class="info-box" style="font-size: 12px;">
+            <strong>🕹️ Déplacement:</strong><br>
+            • Joystick G = Se déplacer<br>
+            • Joystick G + A = Hauteur<br>
+            • Joystick D = Tourner<br><br>
+            <strong>⚡ Actions:</strong><br>
+            • Trigger = Sélectionner<br>
+            • Y = Menu<br>
+            • X = Arborescence<br>
+            • B = Textures ON/OFF
         </div>
         
-        <button class="btn" id="vrButton" disabled>🥽 Entrer en VR</button>
+        <button class="btn" id="vrButton" disabled style="background: linear-gradient(135deg, #00f5ff, #ff00ff);">
+            🥽 ENTRER EN VR
+        </button>
+        
         <div id="status"></div>
     </div>
 
     <script>
-        // ============================================
-        // VARIABLES GLOBALES
-        // ============================================
-        
+        // Variables globales (comme avant)
         let scene, camera, renderer, controls;
-        let models = [];
-        let selectedModel = null;
-        let modelCounter = 0;
-        
-        // Scènes
-        let currentScene = null;
-        let sceneEnvironment = null;
-        
-        // VR
-        let vrSession = null;
-        let controller1, controller2;
-        let dolly;
-        
-        // UI VR
-        let vrMenuFull = null;
-        let vrMenuMini = null;
-        let vrMenuTree = null;
-        let clockDisplay = null;
-        let menuExpanded = false;
-        let treeExpanded = false;
-        
-        // Gizmo
-        let gizmo = null;
-        let rotationGizmo = null;
-        
-        // Raycaster
-        let raycaster = new THREE.Raycaster();
-        let tempMatrix = new THREE.Matrix4();
-        
-        // Locomotion
-        let moveSpeed = 0.05;
-        let turnSpeed = 0.02;
-        let verticalSpeed = 0.03;
-        
-        // Textures
-        let showTextures = true;
-        
-        // États boutons
-        let buttonStates = {
-            menuToggle: false,
-            treeToggle: false,
-            heightMode: false,
-            textureToggle: false
-        };
-        
-        // Position initiale
+        let models = [], selectedModel = null, modelCounter = 0;
+        let vrSession = null, controller1, controller2, dolly;
+        let vrMenuFull = null, vrMenuMini = null, vrMenuTree = null, clockDisplay = null;
+        let menuExpanded = false, treeExpanded = false;
+        let gizmo = null, rotationGizmo = null;
+        let raycaster = new THREE.Raycaster(), tempMatrix = new THREE.Matrix4();
+        let moveSpeed = 0.05, turnSpeed = 0.02, verticalSpeed = 0.03;
+        let showTextures = true, currentScene = null, sceneEnvironment = null;
+        let buttonStates = { menuToggle: false, treeToggle: false, heightMode: false, textureToggle: false };
         const initialPosition = new THREE.Vector3(0, 1.6, 3);
         
-        // ============================================
-        // INITIALISATION
-        // ============================================
-        
+        // Initialisation (même code qu'avant)
         function init() {
             console.log('🚀 Initialisation CAO VR Pro...');
             
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1a1a2e);
+            scene.background = new THREE.Color(0x0a0a0a);
+            scene.fog = new THREE.Fog(0x0a0a0a, 10, 50);
             
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.copy(initialPosition);
             
             dolly = new THREE.Group();
-            dolly.position.set(0, 0, 0);
             dolly.add(camera);
             scene.add(dolly);
             
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.xr.enabled = true;
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.outputEncoding = THREE.sRGBEncoding;
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = 1.2;
@@ -232,65 +269,45 @@
             setupEnvironment('default');
             setupVRControllers();
             createGizmos();
-            createVRUI();
+            createModernVRUI(); // NOUVEAU!
             setupEventListeners();
             checkWebXRSupport();
             
             renderer.setAnimationLoop(animate);
-            
             console.log('✅ Prêt!');
         }
         
-        // ============================================
-        // ENVIRONNEMENTS / SCÈNES
-        // ============================================
-        
+        // Setup environnement (même code)
         function setupEnvironment(type) {
-            // Supprimer l'ancienne scène si existe
-            if (sceneEnvironment) {
-                scene.remove(sceneEnvironment);
-            }
-            
+            if (sceneEnvironment) scene.remove(sceneEnvironment);
             sceneEnvironment = new THREE.Group();
             scene.add(sceneEnvironment);
             
-            // Lumières
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
             sceneEnvironment.add(ambientLight);
             
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
             dirLight.position.set(5, 10, 5);
             dirLight.castShadow = true;
-            dirLight.shadow.mapSize.width = 2048;
-            dirLight.shadow.mapSize.height = 2048;
             sceneEnvironment.add(dirLight);
             
-            // Sol et décor selon le type
-            if (type === 'default') {
-                createDefaultScene();
-            } else if (type === 'ocean') {
-                createOceanScene();
-            } else if (type === 'industry') {
-                createIndustryScene();
-            }
+            if (type === 'default') createDefaultScene();
+            else if (type === 'ocean') createOceanScene();
+            else if (type === 'industry') createIndustryScene();
             
             currentScene = type;
         }
         
         function createDefaultScene() {
-            // Atelier simple
-            scene.background = new THREE.Color(0x3a3a4a);
-            
-            const gridHelper = new THREE.GridHelper(20, 20, 0x667eea, 0x444444);
+            scene.background = new THREE.Color(0x0f0f19);
+            const gridHelper = new THREE.GridHelper(20, 20, 0x00f5ff, 0x222222);
+            gridHelper.material.opacity = 0.3;
+            gridHelper.material.transparent = true;
             sceneEnvironment.add(gridHelper);
             
-            const axesHelper = new THREE.AxesHelper(1);
-            sceneEnvironment.add(axesHelper);
-            
-            // Sol solide
             const floorGeometry = new THREE.PlaneGeometry(20, 20);
             const floorMaterial = new THREE.MeshStandardMaterial({
-                color: 0x2a2a3a,
+                color: 0x1a1a2e,
                 roughness: 0.8,
                 metalness: 0.2
             });
@@ -301,158 +318,57 @@
         }
         
         function createOceanScene() {
-            // Fond océan
-            scene.background = new THREE.Color(0x006994);
+            scene.background = new THREE.Color(0x001a33);
+            scene.fog = new THREE.Fog(0x001a33, 5, 30);
             
-            // Brouillard aquatique
-            scene.fog = new THREE.Fog(0x006994, 5, 30);
-            
-            // Sol sableux
             const sandGeometry = new THREE.PlaneGeometry(50, 50);
-            const sandMaterial = new THREE.MeshStandardMaterial({
-                color: 0xc2b280,
-                roughness: 0.9
-            });
+            const sandMaterial = new THREE.MeshStandardMaterial({ color: 0xc2b280, roughness: 0.9 });
             const sand = new THREE.Mesh(sandGeometry, sandMaterial);
             sand.rotation.x = -Math.PI / 2;
             sand.position.y = -2;
-            sand.receiveShadow = true;
             sceneEnvironment.add(sand);
             
-            // Lumière tamisée (eau)
             const waterLight = new THREE.HemisphereLight(0x87CEEB, 0x004d7a, 0.6);
             sceneEnvironment.add(waterLight);
-            
-            // Particules (bulles)
-            createBubbles();
         }
         
         function createIndustryScene() {
-            // Fond industriel
-            scene.background = new THREE.Color(0x2a2a2a);
+            scene.background = new THREE.Color(0x1a1a1a);
             
-            // Sol métal
             const floorGeometry = new THREE.PlaneGeometry(30, 30);
-            const floorMaterial = new THREE.MeshStandardMaterial({
-                color: 0x4a4a4a,
-                roughness: 0.3,
-                metalness: 0.8
-            });
+            const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.3, metalness: 0.8 });
             const floor = new THREE.Mesh(floorGeometry, floorMaterial);
             floor.rotation.x = -Math.PI / 2;
-            floor.receiveShadow = true;
             sceneEnvironment.add(floor);
             
-            // Grille métal
-            const gridHelper = new THREE.GridHelper(30, 30, 0xffaa00, 0x666666);
+            const gridHelper = new THREE.GridHelper(30, 30, 0xffaa00, 0x444444);
             sceneEnvironment.add(gridHelper);
-            
-            // Lumières industrielles
-            for (let i = 0; i < 4; i++) {
-                const spotLight = new THREE.SpotLight(0xffffff, 0.5);
-                const angle = (i / 4) * Math.PI * 2;
-                spotLight.position.set(Math.cos(angle) * 10, 8, Math.sin(angle) * 10);
-                spotLight.castShadow = true;
-                sceneEnvironment.add(spotLight);
-            }
-        }
-        
-        function createBubbles() {
-            const bubbleGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-            const bubbleMaterial = new THREE.MeshBasicMaterial({
-                color: 0xffffff,
-                transparent: true,
-                opacity: 0.3
-            });
-            
-            for (let i = 0; i < 20; i++) {
-                const bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial);
-                bubble.position.set(
-                    Math.random() * 10 - 5,
-                    Math.random() * 3,
-                    Math.random() * 10 - 5
-                );
-                sceneEnvironment.add(bubble);
-                
-                // Animation montante
-                bubble.userData.speed = Math.random() * 0.01 + 0.005;
-            }
         }
         
         function changeScene(type) {
             setupEnvironment(type);
-            
-            // Mettre à jour UI
-            document.querySelectorAll('.scene-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
+            document.querySelectorAll('.scene-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
-            
             showStatus('🌍 Scène: ' + type, false);
         }
         
-        function loadCustomScene(file) {
-            const loader = new THREE.GLTFLoader();
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                loader.parse(e.target.result, '', function(gltf) {
-                    if (sceneEnvironment) {
-                        scene.remove(sceneEnvironment);
-                    }
-                    
-                    sceneEnvironment = gltf.scene;
-                    scene.add(sceneEnvironment);
-                    
-                    showStatus('✅ Scène custom chargée', false);
-                }, function(error) {
-                    showStatus('❌ Erreur scène', true);
-                });
-            };
-            
-            reader.readAsArrayBuffer(file);
-        }
-        
-        // ============================================
-        // GIZMOS (Position + Rotation)
-        // ============================================
-        
+        // Gizmos (même code)
         function createGizmos() {
-            // Gizmo position (axes)
             gizmo = new THREE.Group();
             gizmo.visible = false;
             scene.add(gizmo);
             
-            const arrowLength = 0.5;
-            const colors = [0xff0000, 0x00ff00, 0x0000ff];
-            const directions = [
-                new THREE.Vector3(1, 0, 0),
-                new THREE.Vector3(0, 1, 0),
-                new THREE.Vector3(0, 0, 1)
-            ];
+            const colors = [0xff0044, 0x00ff88, 0x0088ff];
+            const directions = [new THREE.Vector3(1,0,0), new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,1)];
             
             directions.forEach((dir, i) => {
-                const arrow = new THREE.ArrowHelper(dir, new THREE.Vector3(0,0,0), arrowLength, colors[i], 0.1, 0.05);
+                const arrow = new THREE.ArrowHelper(dir, new THREE.Vector3(0,0,0), 0.5, colors[i], 0.1, 0.05);
                 gizmo.add(arrow);
             });
             
-            // Gizmo rotation (cercles)
             rotationGizmo = new THREE.Group();
             rotationGizmo.visible = false;
             scene.add(rotationGizmo);
-            
-            const radius = 0.6;
-            colors.forEach((color, i) => {
-                const geometry = new THREE.TorusGeometry(radius, 0.02, 8, 32);
-                const material = new THREE.MeshBasicMaterial({ color: color });
-                const torus = new THREE.Mesh(geometry, material);
-                
-                if (i === 0) torus.rotation.y = Math.PI / 2; // X
-                if (i === 1) torus.rotation.x = Math.PI / 2; // Y
-                // Z déjà bon
-                
-                rotationGizmo.add(torus);
-            });
         }
         
         function showGizmo(object, type = 'position') {
@@ -461,130 +377,79 @@
                 rotationGizmo.visible = false;
                 return;
             }
-            
             if (type === 'position') {
                 gizmo.visible = true;
                 gizmo.position.copy(object.position);
                 rotationGizmo.visible = false;
-            } else if (type === 'rotation') {
-                rotationGizmo.visible = true;
-                rotationGizmo.position.copy(object.position);
-                gizmo.visible = false;
             }
         }
         
-        // ============================================
-        // VR CONTROLLERS
-        // ============================================
-        
+        // VR Controllers (même code)
         function setupVRControllers() {
             controller1 = renderer.xr.getController(0);
             controller1.addEventListener('selectstart', onSelectStart);
-            controller1.addEventListener('selectend', onSelectEnd);
-            controller1.addEventListener('squeezestart', onSqueezeStart);
-            controller1.addEventListener('squeezeend', onSqueezeEnd);
             dolly.add(controller1);
             
             controller2 = renderer.xr.getController(1);
             controller2.addEventListener('selectstart', onSelectStart);
-            controller2.addEventListener('selectend', onSelectEnd);
             dolly.add(controller2);
             
-            const geometry = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(0, 0, -3)
-            ]);
-            const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0x00ff00, linewidth: 3 }));
+            const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,-3)]);
+            const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0x00ff88, linewidth: 3 }));
             controller1.add(line.clone());
             controller2.add(line.clone());
         }
         
         function onSelectStart(event) {
             const controller = event.target;
-            
             tempMatrix.identity().extractRotation(controller.matrixWorld);
             raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
             raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
             
-            // Cliquer menu
             if (menuExpanded && vrMenuFull.visible) {
                 const hits = raycaster.intersectObject(vrMenuFull, true);
-                if (hits.length > 0) {
-                    handleMenuClick(hits[0].object);
-                    return;
-                }
+                if (hits.length > 0) { handleMenuClick(hits[0].object); return; }
             } else if (vrMenuMini.visible) {
                 const hits = raycaster.intersectObject(vrMenuMini, true);
-                if (hits.length > 0) {
-                    handleMenuClick(hits[0].object);
-                    return;
-                }
+                if (hits.length > 0) { handleMenuClick(hits[0].object); return; }
             }
             
-            // Cliquer arborescence
             if (treeExpanded && vrMenuTree.visible) {
                 const hits = raycaster.intersectObject(vrMenuTree, true);
-                if (hits.length > 0) {
-                    handleTreeClick(hits[0].object);
-                    return;
-                }
+                if (hits.length > 0) { handleTreeClick(hits[0].object); return; }
             }
             
-            // Sélectionner modèle
             const modelHits = raycaster.intersectObjects(getAllModelMeshes());
-            if (modelHits.length > 0) {
-                selectModelFromMesh(modelHits[0].object);
-            }
+            if (modelHits.length > 0) selectModelFromMesh(modelHits[0].object);
         }
-        
-        function onSelectEnd() {}
-        
-        function onSqueezeStart() {
-            // Grip = saisir pièce (TODO)
-        }
-        
-        function onSqueezeEnd() {}
         
         function selectModelFromMesh(mesh) {
             let current = mesh;
-            while (current && !current.userData.isModel) {
-                current = current.parent;
-            }
-            
+            while (current && !current.userData.isModel) current = current.parent;
             if (current) {
                 selectedModel = current;
                 showGizmo(selectedModel, 'position');
-                console.log('✅ Modèle sélectionné:', selectedModel.userData.name);
+                console.log('✅ Sélectionné:', selectedModel.userData.name);
             }
         }
         
-        // ============================================
-        // LOCOMOTION
-        // ============================================
-        
+        // Locomotion (même code)
         function updateLocomotion() {
             if (!vrSession) return;
-            
             const session = renderer.xr.getSession();
             if (!session) return;
             
             for (const source of session.inputSources) {
                 if (!source.gamepad) continue;
-                
                 const gamepad = source.gamepad;
                 
-                // Main gauche = Déplacement
                 if (source.handedness === 'left') {
-                    const xAxis = gamepad.axes[2];
-                    const yAxis = gamepad.axes[3];
+                    const xAxis = gamepad.axes[2], yAxis = gamepad.axes[3];
                     
                     if (Math.abs(xAxis) > 0.1 || Math.abs(yAxis) > 0.1) {
-                        // Vérifier si mode hauteur actif (Bouton A)
                         if (buttonStates.heightMode) {
-                            // VERTICAL SEULEMENT
                             dolly.position.y += -yAxis * verticalSpeed;
                         } else {
-                            // HORIZONTAL NORMAL
                             const cameraDir = new THREE.Vector3();
                             camera.getWorldDirection(cameraDir);
                             cameraDir.y = 0;
@@ -596,120 +461,71 @@
                             const moveVec = new THREE.Vector3();
                             moveVec.addScaledVector(cameraDir, -yAxis * moveSpeed);
                             moveVec.addScaledVector(perpDir, xAxis * moveSpeed);
-                            
                             dolly.position.add(moveVec);
                         }
                     }
                 }
                 
-                // Main droite = Rotation
                 if (source.handedness === 'right') {
                     const xAxis = gamepad.axes[2];
-                    if (Math.abs(xAxis) > 0.1) {
-                        dolly.rotateY(-xAxis * turnSpeed);
-                    }
+                    if (Math.abs(xAxis) > 0.1) dolly.rotateY(-xAxis * turnSpeed);
                 }
             }
         }
         
         function checkVRButtons() {
             if (!vrSession) return;
-            
             const session = renderer.xr.getSession();
             if (!session) return;
             
             for (const source of session.inputSources) {
                 if (!source.gamepad) continue;
-                
                 const gamepad = source.gamepad;
                 
-                // BOUTON Y (5) = Toggle menu
                 if (gamepad.buttons[5] && gamepad.buttons[5].pressed) {
-                    if (!buttonStates.menuToggle) {
-                        toggleMenuMode();
-                        buttonStates.menuToggle = true;
-                    }
-                } else {
-                    buttonStates.menuToggle = false;
-                }
+                    if (!buttonStates.menuToggle) { toggleMenuMode(); buttonStates.menuToggle = true; }
+                } else { buttonStates.menuToggle = false; }
                 
-                // BOUTON X (3) = Arborescence
                 if (gamepad.buttons[3] && gamepad.buttons[3].pressed) {
-                    if (!buttonStates.treeToggle) {
-                        toggleTreeMode();
-                        buttonStates.treeToggle = true;
-                    }
-                } else {
-                    buttonStates.treeToggle = false;
-                }
+                    if (!buttonStates.treeToggle) { toggleTreeMode(); buttonStates.treeToggle = true; }
+                } else { buttonStates.treeToggle = false; }
                 
-                // BOUTON A (4) = Mode hauteur UNIQUEMENT
                 if (gamepad.buttons[4] && gamepad.buttons[4].pressed) {
                     buttonStates.heightMode = true;
-                } else {
-                    buttonStates.heightMode = false;
-                }
+                } else { buttonStates.heightMode = false; }
                 
-                // BOUTON B (1) = Toggle textures
                 if (gamepad.buttons[1] && gamepad.buttons[1].pressed) {
-                    if (!buttonStates.textureToggle) {
-                        toggleTextures();
-                        buttonStates.textureToggle = true;
-                    }
-                } else {
-                    buttonStates.textureToggle = false;
-                }
+                    if (!buttonStates.textureToggle) { toggleTextures(); buttonStates.textureToggle = true; }
+                } else { buttonStates.textureToggle = false; }
             }
         }
         
-        // ============================================
-        // TEXTURES
-        // ============================================
-        
         function toggleTextures() {
             showTextures = !showTextures;
-            
             models.forEach(model => {
                 model.traverse(child => {
                     if (child instanceof THREE.Mesh) {
-                        if (child.material.map) {
-                            child.material.map.needsUpdate = true;
-                            child.material.needsUpdate = true;
-                        }
-                        
                         if (showTextures) {
-                            // Restaurer textures
-                            if (child.userData.originalMaterial) {
-                                child.material = child.userData.originalMaterial;
-                            }
+                            if (child.userData.originalMaterial) child.material = child.userData.originalMaterial;
                         } else {
-                            // Masquer textures (couleur unie)
-                            if (!child.userData.originalMaterial) {
-                                child.userData.originalMaterial = child.material.clone();
-                            }
-                            
-                            child.material = new THREE.MeshStandardMaterial({
-                                color: child.material.color || 0x667eea,
-                                roughness: 0.5,
-                                metalness: 0.5
-                            });
+                            if (!child.userData.originalMaterial) child.userData.originalMaterial = child.material.clone();
+                            child.material = new THREE.MeshStandardMaterial({ color: child.material.color || 0x667eea });
                         }
                     }
                 });
             });
-            
             showStatus(showTextures ? '🎨 Textures ON' : '⬜ Textures OFF', false);
         }
         
-        // ============================================
-        // VR UI - NOUVELLE VERSION BELLE
-        // ============================================
+        // ==============================
+        // UI VR MODERNE - LA MAGIE ! ✨
+        // ==============================
         
-        function createVRUI() {
-            createFullMenu();
-            createMiniMenu();
-            createTreeMenu();
-            createClock();
+        function createModernVRUI() {
+            createModernFullMenu();
+            createModernMiniMenu();
+            createModernTreeMenu();
+            createModernClock();
             
             menuExpanded = false;
             vrMenuFull.visible = false;
@@ -717,169 +533,161 @@
             treeExpanded = false;
         }
         
-        function createFullMenu() {
+        function createModernFullMenu() {
             vrMenuFull = new THREE.Group();
-            vrMenuFull.position.set(-0.45, 1.6, -0.9);
+            vrMenuFull.position.set(-0.5, 1.6, -1);
             dolly.add(vrMenuFull);
             
-            // FOND PANEL AVEC DÉGRADÉ
-            const panelCanvas = document.createElement('canvas');
-            panelCanvas.width = 1024;
-            panelCanvas.height = 2048;
-            const pCtx = panelCanvas.getContext('2d');
+            // FOND GLASSMORPHISM
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 2400;
+            const ctx = canvas.getContext('2d');
             
-            // Dégradé violet → bleu
-            const gradient = pCtx.createLinearGradient(0, 0, 0, 2048);
-            gradient.addColorStop(0, '#667eea');
-            gradient.addColorStop(1, '#764ba2');
-            pCtx.fillStyle = gradient;
-            pCtx.fillRect(0, 0, 1024, 2048);
+            // Fond noir semi-transparent
+            ctx.fillStyle = 'rgba(10, 10, 20, 0.7)';
+            ctx.fillRect(0, 0, 1024, 2400);
             
-            // Bordure arrondie
-            pCtx.strokeStyle = '#ffffff';
-            pCtx.lineWidth = 10;
-            pCtx.strokeRect(5, 5, 1014, 2038);
+            // Bordure néon cyan
+            ctx.strokeStyle = '#00f5ff';
+            ctx.lineWidth = 4;
+            ctx.shadowColor = '#00f5ff';
+            ctx.shadowBlur = 20;
+            roundRect(ctx, 10, 10, 1004, 2380, 40);
+            ctx.stroke();
             
-            const panelTexture = new THREE.CanvasTexture(panelCanvas);
+            // Lignes décoratives
+            ctx.strokeStyle = 'rgba(255, 0, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(50, 150);
+            ctx.lineTo(974, 150);
+            ctx.stroke();
+            
+            const texture = new THREE.CanvasTexture(canvas);
             const panel = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.7, 1.4),
-                new THREE.MeshBasicMaterial({ 
-                    map: panelTexture,
-                    transparent: true,
-                    opacity: 0.95,
-                    side: THREE.DoubleSide
-                })
+                new THREE.PlaneGeometry(0.8, 1.8),
+                new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: 0.95, side: THREE.DoubleSide })
             );
             vrMenuFull.add(panel);
             
-            // TITRE
-            createBeautifulText(vrMenuFull, '🔧 MENU CAO PRO', 0, 0.65, 0.02, 60, '#ffffff');
+            // TITRE NÉON
+            createNeonText(vrMenuFull, '🚀 CAO VR PRO', 0, 0.85, 0.02);
             
-            // BOUTONS PRINCIPAUX
-            let yPos = 0.5;
-            createBeautifulButton(vrMenuFull, '📏 Mesurer Distance', 0, yPos, () => console.log('Mesure'), '#4CAF50'); yPos -= 0.12;
-            createBeautifulButton(vrMenuFull, '🎯 Centrer Pièce', 0, yPos, () => centerSelectedModel(), '#2196F3'); yPos -= 0.12;
-            createBeautifulButton(vrMenuFull, '📸 Screenshot', 0, yPos, () => takeScreenshot(), '#9C27B0'); yPos -= 0.12;
-            createBeautifulButton(vrMenuFull, '🔄 Reset Vue', 0, yPos, () => resetView(), '#FF9800'); yPos -= 0.12;
-            createBeautifulButton(vrMenuFull, '🌲 Arborescence', 0, yPos, () => toggleTreeMode(), '#00BCD4'); yPos -= 0.14;
+            // BOUTONS avec EFFET NÉON
+            let yPos = 0.7;
+            createNeonButton(vrMenuFull, '📏 MESURER', 0, yPos, () => console.log('Mesure'), '#00ff88'); yPos -= 0.13;
+            createNeonButton(vrMenuFull, '🎯 CENTRER', 0, yPos, () => centerSelectedModel(), '#00f5ff'); yPos -= 0.13;
+            createNeonButton(vrMenuFull, '📸 SCREENSHOT', 0, yPos, () => takeScreenshot(), '#ff00ff'); yPos -= 0.13;
+            createNeonButton(vrMenuFull, '🔄 RESET', 0, yPos, () => resetView(), '#ffaa00'); yPos -= 0.13;
+            createNeonButton(vrMenuFull, '🌲 ARBORESCENCE', 0, yPos, () => toggleTreeMode(), '#00ffff'); yPos -= 0.16;
             
-            // SECTION POSITION
-            createBeautifulText(vrMenuFull, '📍 Position XYZ', 0, yPos, 0.02, 35, '#ffeb3b');
-            yPos -= 0.08;
-            
-            // Grille 2x3 pour XYZ
-            const spacing = 0.19;
-            createCompactButton(vrMenuFull, 'X-', -spacing, yPos, () => moveModel(-0.1,0,0), '#f44336');
-            createCompactButton(vrMenuFull, 'X+', spacing, yPos, () => moveModel(0.1,0,0), '#f44336');
+            // POSITION XYZ avec style flat moderne
+            createNeonText(vrMenuFull, '📍 POSITION', 0, yPos, 0.02, 40, '#ffff00');
+            yPos -= 0.1;
+            const sp = 0.2;
+            createFlatButton(vrMenuFull, 'X-', -sp, yPos, () => moveModel(-0.1,0,0), '#ff0044');
+            createFlatButton(vrMenuFull, 'X+', sp, yPos, () => moveModel(0.1,0,0), '#ff0044');
             yPos -= 0.09;
-            createCompactButton(vrMenuFull, 'Y-', -spacing, yPos, () => moveModel(0,-0.1,0), '#4caf50');
-            createCompactButton(vrMenuFull, 'Y+', spacing, yPos, () => moveModel(0,0.1,0), '#4caf50');
+            createFlatButton(vrMenuFull, 'Y-', -sp, yPos, () => moveModel(0,-0.1,0), '#00ff88');
+            createFlatButton(vrMenuFull, 'Y+', sp, yPos, () => moveModel(0,0.1,0), '#00ff88');
             yPos -= 0.09;
-            createCompactButton(vrMenuFull, 'Z-', -spacing, yPos, () => moveModel(0,0,-0.1), '#2196f3');
-            createCompactButton(vrMenuFull, 'Z+', spacing, yPos, () => moveModel(0,0,0.1), '#2196f3');
-            yPos -= 0.12;
+            createFlatButton(vrMenuFull, 'Z-', -sp, yPos, () => moveModel(0,0,-0.1), '#0088ff');
+            createFlatButton(vrMenuFull, 'Z+', sp, yPos, () => moveModel(0,0,0.1), '#0088ff');
+            yPos -= 0.14;
             
-            // SECTION ROTATION
-            createBeautifulText(vrMenuFull, '🔄 Rotation XYZ', 0, yPos, 0.02, 35, '#ffeb3b');
-            yPos -= 0.08;
-            
-            createCompactButton(vrMenuFull, 'RX-', -spacing, yPos, () => rotateModel(-15,0,0), '#ff5722');
-            createCompactButton(vrMenuFull, 'RX+', spacing, yPos, () => rotateModel(15,0,0), '#ff5722');
+            // ROTATION XYZ
+            createNeonText(vrMenuFull, '🔄 ROTATION', 0, yPos, 0.02, 40, '#ffff00');
+            yPos -= 0.1;
+            createFlatButton(vrMenuFull, 'RX-', -sp, yPos, () => rotateModel(-15,0,0), '#ff0044');
+            createFlatButton(vrMenuFull, 'RX+', sp, yPos, () => rotateModel(15,0,0), '#ff0044');
             yPos -= 0.09;
-            createCompactButton(vrMenuFull, 'RY-', -spacing, yPos, () => rotateModel(0,-15,0), '#8bc34a');
-            createCompactButton(vrMenuFull, 'RY+', spacing, yPos, () => rotateModel(0,15,0), '#8bc34a');
+            createFlatButton(vrMenuFull, 'RY-', -sp, yPos, () => rotateModel(0,-15,0), '#00ff88');
+            createFlatButton(vrMenuFull, 'RY+', sp, yPos, () => rotateModel(0,15,0), '#00ff88');
             yPos -= 0.09;
-            createCompactButton(vrMenuFull, 'RZ-', -spacing, yPos, () => rotateModel(0,0,-15), '#03a9f4');
-            createCompactButton(vrMenuFull, 'RZ+', spacing, yPos, () => rotateModel(0,0,15), '#03a9f4');
-            yPos -= 0.12;
+            createFlatButton(vrMenuFull, 'RZ-', -sp, yPos, () => rotateModel(0,0,-15), '#0088ff');
+            createFlatButton(vrMenuFull, 'RZ+', sp, yPos, () => rotateModel(0,0,15), '#0088ff');
+            yPos -= 0.14;
             
-            // BOUTON FERMER
-            createBeautifulButton(vrMenuFull, '➖ Réduire Menu', 0, yPos, () => toggleMenuMode(), '#607d8b');
+            createNeonButton(vrMenuFull, '➖ RÉDUIRE', 0, yPos, () => toggleMenuMode(), '#666666');
         }
         
-        function createMiniMenu() {
+        function createModernMiniMenu() {
             vrMenuMini = new THREE.Group();
-            vrMenuMini.position.set(-0.35, 1.8, -0.5);
+            vrMenuMini.position.set(-0.4, 1.8, -0.6);
             dolly.add(vrMenuMini);
             
-            // Panneau mini avec dégradé
             const canvas = document.createElement('canvas');
-            canvas.width = 256;
-            canvas.height = 256;
+            canvas.width = 512;
+            canvas.height = 512;
             const ctx = canvas.getContext('2d');
             
-            const grad = ctx.createLinearGradient(0, 0, 0, 256);
-            grad.addColorStop(0, '#667eea');
-            grad.addColorStop(1, '#764ba2');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, 256, 256);
+            // Fond noir glassmorphism
+            ctx.fillStyle = 'rgba(10, 10, 20, 0.8)';
+            ctx.fillRect(0, 0, 512, 512);
             
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 8;
-            ctx.strokeRect(4, 4, 248, 248);
+            // Bordure néon
+            ctx.strokeStyle = '#00f5ff';
+            ctx.lineWidth = 6;
+            ctx.shadowColor = '#00f5ff';
+            ctx.shadowBlur = 30;
+            roundRect(ctx, 15, 15, 482, 482, 60);
+            ctx.stroke();
             
             const texture = new THREE.CanvasTexture(canvas);
             const panel = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.22, 0.22),
-                new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: 0.95, side: THREE.DoubleSide })
+                new THREE.PlaneGeometry(0.3, 0.3),
+                new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide })
             );
             vrMenuMini.add(panel);
             
-            createBeautifulButton(vrMenuMini, '➕', 0, 0.05, () => toggleMenuMode(), '#4CAF50', 0.2, 0.08);
-            createBeautifulButton(vrMenuMini, '🔄', 0, -0.05, () => resetView(), '#FF9800', 0.2, 0.08);
+            createNeonButton(vrMenuMini, '➕', 0, 0.06, () => toggleMenuMode(), '#00ff88', 0.25, 0.1);
+            createNeonButton(vrMenuMini, '🔄', 0, -0.06, () => resetView(), '#ffaa00', 0.25, 0.1);
         }
         
-        function createTreeMenu() {
+        function createModernTreeMenu() {
             vrMenuTree = new THREE.Group();
-            vrMenuTree.position.set(0.45, 1.6, -0.9);
+            vrMenuTree.position.set(0.5, 1.6, -1);
             vrMenuTree.visible = false;
             dolly.add(vrMenuTree);
             
-            // Panneau arborescence
             const canvas = document.createElement('canvas');
             canvas.width = 1024;
-            canvas.height = 1536;
+            canvas.height = 1800;
             const ctx = canvas.getContext('2d');
             
-            const grad = ctx.createLinearGradient(0, 0, 0, 1536);
-            grad.addColorStop(0, '#1a1a2e');
-            grad.addColorStop(1, '#16213e');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, 1024, 1536);
+            // Fond
+            ctx.fillStyle = 'rgba(5, 5, 15, 0.9)';
+            ctx.fillRect(0, 0, 1024, 1800);
             
-            ctx.strokeStyle = '#00BCD4';
-            ctx.lineWidth = 10;
-            ctx.strokeRect(5, 5, 1014, 1526);
+            // Bordure néon magenta
+            ctx.strokeStyle = '#ff00ff';
+            ctx.lineWidth = 4;
+            ctx.shadowColor = '#ff00ff';
+            ctx.shadowBlur = 25;
+            roundRect(ctx, 10, 10, 1004, 1780, 40);
+            ctx.stroke();
             
             const texture = new THREE.CanvasTexture(canvas);
             const panel = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.6, 0.9),
-                new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: 0.95, side: THREE.DoubleSide })
+                new THREE.PlaneGeometry(0.7, 1.2),
+                new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide })
             );
             vrMenuTree.add(panel);
             
-            createBeautifulText(vrMenuTree, '🌲 MODÈLES', 0, 0.4, 0.02, 50, '#00BCD4');
-            createBeautifulButton(vrMenuTree, '❌ Fermer', 0, -0.4, () => toggleTreeMode(), '#f44336');
+            createNeonText(vrMenuTree, '🌲 MODÈLES', 0, 0.55, 0.02, 60, '#ff00ff');
+            createNeonButton(vrMenuTree, '❌ FERMER', 0, -0.5, () => toggleTreeMode(), '#ff0044');
         }
         
         function updateTreeMenu() {
             vrMenuTree.children = vrMenuTree.children.filter(c => !c.userData.isModelButton);
             
-            let yPos = 0.25;
+            let yPos = 0.4;
             models.forEach((model, i) => {
-                const name = model.userData.name.substring(0, 14);
-                const btn = createBeautifulButton(
-                    vrMenuTree, 
-                    `📦 ${name}`, 
-                    0, 
-                    yPos, 
-                    () => selectModelByIndex(i), 
-                    '#00BCD4',
-                    0.55,
-                    0.09
-                );
+                const name = model.userData.name.substring(0, 16);
+                const btn = createNeonButton(vrMenuTree, `📦 ${name}`, 0, yPos, () => selectModelByIndex(i), '#00ffff', 0.65, 0.1);
                 btn.userData.isModelButton = true;
-                yPos -= 0.11;
+                yPos -= 0.12;
             });
         }
         
@@ -887,45 +695,44 @@
             if (i >= 0 && i < models.length) {
                 selectedModel = models[i];
                 showGizmo(selectedModel, 'position');
-                console.log('✅ Sélectionné:', selectedModel.userData.name);
             }
         }
         
-        function createClock() {
+        function createModernClock() {
             clockDisplay = new THREE.Group();
-            clockDisplay.position.set(0.32, 1.8, -0.5);
+            clockDisplay.position.set(0.35, 1.8, -0.6);
             dolly.add(clockDisplay);
             
-            // Fond horloge avec dégradé
             const bgCanvas = document.createElement('canvas');
-            bgCanvas.width = 256;
-            bgCanvas.height = 128;
+            bgCanvas.width = 512;
+            bgCanvas.height = 256;
             const bgCtx = bgCanvas.getContext('2d');
             
-            const grad = bgCtx.createLinearGradient(0, 0, 256, 0);
-            grad.addColorStop(0, '#667eea');
-            grad.addColorStop(1, '#764ba2');
-            bgCtx.fillStyle = grad;
-            bgCtx.fillRect(0, 0, 256, 128);
+            // Fond
+            bgCtx.fillStyle = 'rgba(10, 10, 20, 0.8)';
+            bgCtx.fillRect(0, 0, 512, 256);
             
-            bgCtx.strokeStyle = '#ffffff';
-            bgCtx.lineWidth = 6;
-            bgCtx.strokeRect(3, 3, 250, 122);
+            // Bordure néon
+            bgCtx.strokeStyle = '#00f5ff';
+            bgCtx.lineWidth = 4;
+            bgCtx.shadowColor = '#00f5ff';
+            bgCtx.shadowBlur = 20;
+            roundRect(bgCtx, 8, 8, 496, 240, 30);
+            bgCtx.stroke();
             
             const bgTexture = new THREE.CanvasTexture(bgCanvas);
             const bg = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.2, 0.1),
+                new THREE.PlaneGeometry(0.28, 0.14),
                 new THREE.MeshBasicMaterial({ map: bgTexture, transparent: true, side: THREE.DoubleSide })
             );
             clockDisplay.add(bg);
             
-            // Texte horloge
             const canvas = document.createElement('canvas');
-            canvas.width = 256;
-            canvas.height = 128;
+            canvas.width = 512;
+            canvas.height = 256;
             const texture = new THREE.CanvasTexture(canvas);
             const textMesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.19, 0.09),
+                new THREE.PlaneGeometry(0.27, 0.13),
                 new THREE.MeshBasicMaterial({ map: texture, transparent: true })
             );
             textMesh.position.z = 0.01;
@@ -941,120 +748,125 @@
             
             const canvas = textMesh.userData.canvas;
             const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, 256, 128);
+            ctx.clearRect(0, 0, 512, 256);
             
             const now = new Date();
-            const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+            const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
             
-            // Ombre
-            ctx.shadowColor = 'rgba(0,0,0,0.5)';
-            ctx.shadowBlur = 4;
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 2;
-            
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 48px Arial';
+            // Effet néon
+            ctx.shadowColor = '#00f5ff';
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = '#00f5ff';
+            ctx.font = 'bold 80px "Segoe UI"';
             ctx.textAlign = 'center';
-            ctx.fillText(time, 128, 80);
+            ctx.fillText(time, 256, 160);
             
             textMesh.userData.texture.needsUpdate = true;
         }
         
-        // ============================================
-        // CRÉATION BOUTONS BEAUX
-        // ============================================
+        // ===== CRÉATION BOUTONS NÉON =====
         
-        function createBeautifulButton(parent, text, x, y, onClick, color = '#667eea', width = 0.6, height = 0.1) {
+        function createNeonButton(parent, text, x, y, onClick, color = '#00f5ff', width = 0.7, height = 0.12) {
             const group = new THREE.Group();
-            group.position.set(x, y, 0.02);
+            group.position.set(x, y, 0.03);
             
-            // Canvas pour le bouton
             const canvas = document.createElement('canvas');
             canvas.width = 1024;
-            canvas.height = 256;
+            canvas.height = 200;
             const ctx = canvas.getContext('2d');
             
-            // Dégradé
-            const gradient = ctx.createLinearGradient(0, 0, 0, 256);
-            gradient.addColorStop(0, color);
-            gradient.addColorStop(1, darkenColor(color, 0.3));
+            // Fond avec dégradé
+            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+            gradient.addColorStop(0, hexToRgba(color, 0.3));
+            gradient.addColorStop(1, hexToRgba(color, 0.1));
             ctx.fillStyle = gradient;
-            
-            // Bouton arrondi
-            roundRect(ctx, 10, 10, 1004, 236, 30);
+            roundRect(ctx, 15, 15, 994, 170, 30);
             ctx.fill();
             
-            // Bordure
-            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            // Bordure néon
+            ctx.strokeStyle = color;
             ctx.lineWidth = 4;
-            roundRect(ctx, 10, 10, 1004, 236, 30);
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 25;
+            roundRect(ctx, 15, 15, 994, 170, 30);
             ctx.stroke();
             
-            // Ombre intérieure
-            ctx.shadowColor = 'rgba(0,0,0,0.3)';
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetY = 5;
-            
-            // Texte
-            ctx.shadowColor = 'rgba(0,0,0,0.8)';
-            ctx.shadowBlur = 8;
-            ctx.shadowOffsetX = 3;
-            ctx.shadowOffsetY = 3;
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 80px Arial';
+            // Texte néon
+            ctx.shadowBlur = 20;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 70px "Segoe UI"';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(text, 512, 128);
+            ctx.fillText(text, 512, 100);
             
             const texture = new THREE.CanvasTexture(canvas);
-            
-            // MESH CLIQUABLE (TOUTE LA SURFACE!)
             const button = new THREE.Mesh(
                 new THREE.PlaneGeometry(width, height),
-                new THREE.MeshBasicMaterial({ 
-                    map: texture, 
-                    transparent: true,
-                    side: THREE.DoubleSide
-                })
+                new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide })
             );
             
             button.userData.isButton = true;
             button.userData.onClick = onClick;
-            button.userData.originalColor = color;
+            button.userData.color = color;
             button.userData.canvas = canvas;
             button.userData.texture = texture;
             
             group.add(button);
             parent.add(group);
-            
             return group;
         }
         
-        function createCompactButton(parent, text, x, y, onClick, color = '#667eea') {
-            return createBeautifulButton(parent, text, x, y, onClick, color, 0.15, 0.08);
-        }
-        
-        function createBeautifulText(parent, text, x, y, z, fontSize = 50, color = '#ffffff') {
+        function createFlatButton(parent, text, x, y, onClick, color = '#00f5ff') {
+            const group = new THREE.Group();
+            group.position.set(x, y, 0.03);
+            
             const canvas = document.createElement('canvas');
-            canvas.width = 1024;
-            canvas.height = 256;
+            canvas.width = 256;
+            canvas.height = 128;
             const ctx = canvas.getContext('2d');
             
-            // Ombre
-            ctx.shadowColor = 'rgba(0,0,0,0.8)';
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetX = 3;
-            ctx.shadowOffsetY = 3;
-            
+            // Fond plat moderne
             ctx.fillStyle = color;
-            ctx.font = `bold ${fontSize}px Arial`;
+            ctx.fillRect(0, 0, 256, 128);
+            
+            // Texte blanc bold
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 60px "Segoe UI"';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(text, 512, 128);
+            ctx.fillText(text, 128, 64);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const button = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.16, 0.08),
+                new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide })
+            );
+            
+            button.userData.isButton = true;
+            button.userData.onClick = onClick;
+            group.add(button);
+            parent.add(group);
+            return group;
+        }
+        
+        function createNeonText(parent, text, x, y, z, fontSize = 60, color = '#00f5ff') {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 200;
+            const ctx = canvas.getContext('2d');
+            
+            // Effet néon
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 30;
+            ctx.fillStyle = color;
+            ctx.font = `bold ${fontSize}px "Segoe UI"`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 512, 100);
             
             const texture = new THREE.CanvasTexture(canvas);
             const mesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.5, 0.08),
+                new THREE.PlaneGeometry(0.6, 0.12),
                 new THREE.MeshBasicMaterial({ map: texture, transparent: true })
             );
             mesh.position.set(x, y, z);
@@ -1062,7 +874,7 @@
             return mesh;
         }
         
-        // Utilitaires canvas
+        // Utilitaires
         function roundRect(ctx, x, y, width, height, radius) {
             ctx.beginPath();
             ctx.moveTo(x + radius, y);
@@ -1077,20 +889,14 @@
             ctx.closePath();
         }
         
-        function darkenColor(hex, percent) {
-            const num = parseInt(hex.replace('#',''), 16);
-            const amt = Math.round(2.55 * percent * 100);
-            const R = (num >> 16) - amt;
-            const G = (num >> 8 & 0x00FF) - amt;
-            const B = (num & 0x0000FF) - amt;
-            return '#' + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 +
-                (G<255?G<1?0:G:255)*0x100 +
-                (B<255?B<1?0:B:255))
-                .toString(16).slice(1);
+        function hexToRgba(hex, alpha) {
+            const r = parseInt(hex.slice(1,3), 16);
+            const g = parseInt(hex.slice(3,5), 16);
+            const b = parseInt(hex.slice(5,7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
         }
         
         function handleMenuClick(object) {
-            // Remonter jusqu'au bouton
             let current = object;
             let depth = 0;
             while (current && !current.userData.isButton && depth < 5) {
@@ -1099,34 +905,28 @@
             }
             
             if (current && current.userData.isButton && current.userData.onClick) {
-                // Effet flash blanc
+                // Flash effet
                 if (current.userData.canvas) {
                     const canvas = current.userData.canvas;
                     const ctx = canvas.getContext('2d');
-                    
-                    // Flash
-                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     current.userData.texture.needsUpdate = true;
                     
-                    // Restaurer après 150ms
                     setTimeout(() => {
-                        // Redessiner le bouton normalement
-                        // (on devrait recréer le bouton, mais pour simplifier on efface juste le flash)
                         current.userData.texture.needsUpdate = true;
-                    }, 150);
+                    }, 100);
                 }
                 
                 // Haptic
                 if (vrSession) {
                     for (const source of vrSession.inputSources) {
                         if (source.gamepad && source.gamepad.hapticActuators && source.gamepad.hapticActuators[0]) {
-                            source.gamepad.hapticActuators[0].pulse(0.8, 120);
+                            source.gamepad.hapticActuators[0].pulse(1.0, 80);
                         }
                     }
                 }
                 
-                // Exécuter l'action
                 current.userData.onClick();
             }
         }
@@ -1147,12 +947,7 @@
             if (treeExpanded) updateTreeMenu();
         }
         
-        // Supprimer les anciennes fonctions createVRText et createVRButton
-        
-        // ============================================
-        // MANIPULATION MODÈLES
-        // ============================================
-        
+        // Manipulation modèles
         function moveModel(dx, dy, dz) {
             if (!selectedModel) return;
             selectedModel.position.x += dx;
@@ -1182,29 +977,21 @@
             camera.position.copy(initialPosition);
         }
         
-        // ============================================
-        // CHARGEMENT MODÈLES (GLTF, STL, OBJ, FBX)
-        // ============================================
-        
+        // Chargement modèles (code standard)
         function loadModels(files) {
             Array.from(files).forEach(file => loadModel(file));
         }
         
         function loadModel(file) {
             showStatus('Chargement...', false);
-            
             const reader = new FileReader();
             const ext = file.name.split('.').pop().toLowerCase();
             
             reader.onload = function(e) {
                 const contents = e.target.result;
-                
                 if (ext === 'glb' || ext === 'gltf') {
                     const loader = new THREE.GLTFLoader();
-                    loader.parse(contents, '', 
-                        gltf => addModelToScene(gltf.scene, file.name),
-                        err => showStatus('Erreur GLTF', true)
-                    );
+                    loader.parse(contents, '', gltf => addModelToScene(gltf.scene, file.name), err => showStatus('Erreur', true));
                 } else if (ext === 'fbx') {
                     const loader = new THREE.FBXLoader();
                     const fbx = loader.parse(contents, '');
@@ -1212,16 +999,8 @@
                 } else if (ext === 'stl') {
                     const loader = new THREE.STLLoader();
                     const geometry = loader.parse(contents);
-                    const mesh = new THREE.Mesh(
-                        geometry,
-                        new THREE.MeshStandardMaterial({
-                            color: 0x667eea,
-                            roughness: 0.5,
-                            metalness: 0.5
-                        })
-                    );
+                    const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x667eea }));
                     mesh.castShadow = true;
-                    mesh.receiveShadow = true;
                     addModelToScene(mesh, file.name);
                 } else if (ext === 'obj') {
                     const loader = new THREE.OBJLoader();
@@ -1229,13 +1008,8 @@
                     const obj = loader.parse(text);
                     obj.traverse(child => {
                         if (child instanceof THREE.Mesh) {
-                            child.material = new THREE.MeshStandardMaterial({
-                                color: 0x667eea,
-                                roughness: 0.5,
-                                metalness: 0.5
-                            });
+                            child.material = new THREE.MeshStandardMaterial({ color: 0x667eea });
                             child.castShadow = true;
-                            child.receiveShadow = true;
                         }
                     });
                     addModelToScene(obj, file.name);
@@ -1247,26 +1021,24 @@
         
         function addModelToScene(model, filename) {
             modelCounter++;
-            
             const group = new THREE.Group();
             group.add(model);
-            group.userData = {
-                id: modelCounter,
-                name: filename,
-                visible: true,
-                isModel: true
-            };
-            
-            // Position AU CENTRE (0,0,0)
+            group.userData = { id: modelCounter, name: filename, visible: true, isModel: true };
             group.position.set(0, 0, 0);
-            
             scene.add(group);
             models.push(group);
             
-            // Fit to view
-            fitModelToView(group);
+            const box = new THREE.Box3().setFromObject(group);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+            group.children[0].position.sub(center);
+            const maxDim = Math.max(size.x, size.y, size.z);
+            if (maxDim > 0) {
+                const scale = 2 / maxDim;
+                group.scale.set(scale, scale, scale);
+            }
+            group.position.y = 1;
             
-            // Préserver textures originales
             group.traverse(child => {
                 if (child instanceof THREE.Mesh) {
                     child.userData.originalMaterial = child.material.clone();
@@ -1274,46 +1046,18 @@
             });
             
             showStatus('✅ ' + filename, false);
-            
-            if (treeExpanded) {
-                updateTreeMenu();
-            }
-        }
-        
-        function fitModelToView(modelGroup) {
-            const box = new THREE.Box3().setFromObject(modelGroup);
-            const size = box.getSize(new THREE.Vector3());
-            const center = box.getCenter(new THREE.Vector3());
-            
-            // Centrer contenu
-            modelGroup.children[0].position.sub(center);
-            
-            // Ajuster taille
-            const maxDim = Math.max(size.x, size.y, size.z);
-            if (maxDim > 0) {
-                const scale = 2 / maxDim;
-                modelGroup.scale.set(scale, scale, scale);
-            }
-            
-            // Hauteur visible
-            modelGroup.position.y = 1;
+            if (treeExpanded) updateTreeMenu();
         }
         
         function getAllModelMeshes() {
             const meshes = [];
             models.forEach(model => {
                 model.traverse(child => {
-                    if (child instanceof THREE.Mesh) {
-                        meshes.push(child);
-                    }
+                    if (child instanceof THREE.Mesh) meshes.push(child);
                 });
             });
             return meshes;
         }
-        
-        // ============================================
-        // SCREENSHOTS
-        // ============================================
         
         function takeScreenshot() {
             renderer.render(scene, camera);
@@ -1321,18 +1065,26 @@
             link.download = `screenshot_${Date.now()}.png`;
             link.href = renderer.domElement.toDataURL('image/png');
             link.click();
-            console.log('📸 Screenshot!');
         }
         
-        // ============================================
-        // VR SESSION
-        // ============================================
+        function loadCustomScene(file) {
+            const loader = new THREE.GLTFLoader();
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                loader.parse(e.target.result, '', function(gltf) {
+                    if (sceneEnvironment) scene.remove(sceneEnvironment);
+                    sceneEnvironment = gltf.scene;
+                    scene.add(sceneEnvironment);
+                    showStatus('✅ Scène custom', false);
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        }
         
         function checkWebXRSupport() {
             if ('xr' in navigator) {
                 navigator.xr.isSessionSupported('immersive-vr').then(supported => {
                     document.getElementById('vrButton').disabled = !supported;
-                    document.getElementById('vrButton').textContent = supported ? '🥽 Entrer en VR' : 'VR non supporté';
                 });
             }
         }
@@ -1340,7 +1092,7 @@
         async function enterVR() {
             try {
                 vrSession = await navigator.xr.requestSession('immersive-vr', {
-                    optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
+                    optionalFeatures: ['local-floor', 'bounded-floor']
                 });
                 await renderer.xr.setSession(vrSession);
                 document.getElementById('ui-panel').style.display = 'none';
@@ -1352,10 +1104,6 @@
                 showStatus('Erreur VR', true);
             }
         }
-        
-        // ============================================
-        // EVENT LISTENERS
-        // ============================================
         
         function setupEventListeners() {
             document.getElementById('fileInput').addEventListener('change', e => loadModels(e.target.files));
@@ -1378,35 +1126,16 @@
             setTimeout(() => s.style.display = 'none', 3000);
         }
         
-        // ============================================
-        // ANIMATION LOOP
-        // ============================================
-        
         function animate() {
             if (renderer.xr.isPresenting) {
                 updateLocomotion();
                 checkVRButtons();
                 updateClock();
-                
-                // Animer bulles si océan
-                if (currentScene === 'ocean' && sceneEnvironment) {
-                    sceneEnvironment.children.forEach(child => {
-                        if (child.userData.speed) {
-                            child.position.y += child.userData.speed;
-                            if (child.position.y > 5) child.position.y = -2;
-                        }
-                    });
-                }
             } else {
                 controls.update();
             }
-            
             renderer.render(scene, camera);
         }
-        
-        // ============================================
-        // DÉMARRAGE
-        // ============================================
         
         init();
     </script>
